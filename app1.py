@@ -240,7 +240,7 @@ def _find_defect_idx(draw_row, row_starts):
     min_dist = float("inf")
 
     for i, (s, e) in enumerate(defect_row_ranges):
-    closest_idx = None
+    idx = None
     min_dist = float("inf")
 
     for i, start in enumerate(row_starts):
