@@ -240,6 +240,21 @@ def _find_defect_idx(draw_row, row_starts):
     min_dist = float("inf")
 
     for i, (s, e) in enumerate(defect_row_ranges):
+    closest_idx = None
+    min_dist = float("inf")
+
+    for i, start in enumerate(row_starts):
+        dist = abs(draw_row - start)
+
+        if dist < min_dist:
+            min_dist = dist
+            closest_idx = i
+
+    return closest_idx
+    closest_idx = None
+    min_dist = float("inf")
+
+    for i, (s, e) in enumerate(defect_row_ranges):
         # 如果在範圍內 → 直接回傳
         if s <= draw_row <= e:
             return i
@@ -258,16 +273,13 @@ def _find_defect_idx(draw_row, row_starts):
     return None
 
 
-def extract_and_cache_images(sheet_name, defect_row_ranges):
-    """
-    從 xlsx 提取圖片（支援 Drawing 格式 和 IMAGE() richValue 格式），
-    存到 static/images/<hash>/<defect_idx>/，
-    回傳 { defect_idx: [filename, ...] }
-    """
+def extract_and_cache_images(sheet_name, row_starts):
     path = get_excel_path()
     if not path:
         return {}
+
     result = {}
+
     try:
         with zipfile.ZipFile(path) as z:
             all_files = z.namelist()
@@ -276,43 +288,64 @@ def extract_and_cache_images(sheet_name, defect_row_ranges):
             if sheetnum is None:
                 return {}
 
-            # ── 方式一：Drawing 格式（浮動圖片）───────────────
+            # ───── Drawing 圖片 ─────
             d_num = snum_to_dnum.get(sheetnum)
             if d_num:
                 for img_info in _parse_drawing_images(z, d_num):
                     draw_row  = img_info["draw_row"]
                     media_key = img_info["media"]
+
                     if media_key not in all_files:
                         continue
+
                     defect_idx = _find_defect_idx(draw_row, row_starts)
                     if defect_idx is None:
                         continue
+
                     img_bytes = z.read(media_key)
                     ext = media_key.rsplit(".", 1)[-1].lower()
                     fname = _save_image(img_bytes, ext, sheet_name, defect_idx)
-                    if fname:
-                        result.setdefault(defect_idx, []).append(fname)
 
-            # ── 方式二：IMAGE() richValue 格式（儲存格嵌入）──
+                    if fname:
+                        result.setdefault(defect_idx, [])
+                        result[defect_idx].append({
+                            "row": draw_row,
+                            "file": fname
+                        })
+
+            # ───── IMAGE() 圖片 ─────
             vm_to_media = _build_richvalue_map(z)
             if vm_to_media:
                 for cell_info in _scan_sheet_richvalue_cells(z, sheetnum):
-                    draw_row   = cell_info["draw_row"]
-                    vm_idx     = cell_info["vm"]
-                    media_key  = vm_to_media.get(vm_idx)
+                    draw_row  = cell_info["draw_row"]
+                    vm_idx    = cell_info["vm"]
+                    media_key = vm_to_media.get(vm_idx)
+
                     if not media_key or media_key not in all_files:
                         continue
-                    defect_idx = _find_defect_idx(draw_row, defect_row_ranges)
+
+                    defect_idx = _find_defect_idx(draw_row, row_starts)
                     if defect_idx is None:
                         continue
+
                     img_bytes = z.read(media_key)
                     ext = media_key.rsplit(".", 1)[-1].lower()
                     fname = _save_image(img_bytes, ext, sheet_name, defect_idx)
+
                     if fname:
-                        result.setdefault(defect_idx, []).append(fname)
+                        result.setdefault(defect_idx, [])
+                        result[defect_idx].append({
+                            "row": draw_row,
+                            "file": fname
+                        })
+
+            # 🔥 排序（關鍵）
+            for k in result:
+                result[k] = [x["file"] for x in sorted(result[k], key=lambda x: x["row"])]
 
     except Exception as e:
         app.logger.error(f"extract_and_cache_images error: {e}")
+
     return result
 
 
