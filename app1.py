@@ -224,23 +224,24 @@ def _save_image(img_bytes, ext, sheet_name, defect_idx):
     return filename
 
 
-def _find_defect_idx(draw_row, defect_row_ranges):
-    for i, (s, e) in enumerate(defect_row_ranges):
-        if s <= draw_row <= e:
+def _find_defect_idx(draw_row, row_starts):
+    for i in range(len(row_starts)):
+        start = row_starts[i]
+        end = row_starts[i + 1] if i + 1 < len(row_starts) else float("inf")
+
+        if start <= draw_row < end:
             return i
+
     return None
 
 
-def extract_and_cache_images(sheet_name, defect_row_ranges):
-    """
-    從 xlsx 提取圖片（支援 Drawing 格式 和 IMAGE() richValue 格式），
-    存到 static/images/<hash>/<defect_idx>/，
-    回傳 { defect_idx: [filename, ...] }
-    """
+def extract_and_cache_images(sheet_name, row_starts):
     path = get_excel_path()
     if not path:
         return {}
+
     result = {}
+
     try:
         with zipfile.ZipFile(path) as z:
             all_files = z.namelist()
@@ -249,43 +250,64 @@ def extract_and_cache_images(sheet_name, defect_row_ranges):
             if sheetnum is None:
                 return {}
 
-            # ── 方式一：Drawing 格式（浮動圖片）───────────────
+            # ───── Drawing 圖片 ─────
             d_num = snum_to_dnum.get(sheetnum)
             if d_num:
                 for img_info in _parse_drawing_images(z, d_num):
                     draw_row  = img_info["draw_row"]
                     media_key = img_info["media"]
+
                     if media_key not in all_files:
                         continue
-                    defect_idx = _find_defect_idx(draw_row, defect_row_ranges)
+
+                    defect_idx = _find_defect_idx(draw_row, row_starts)
                     if defect_idx is None:
                         continue
+
                     img_bytes = z.read(media_key)
                     ext = media_key.rsplit(".", 1)[-1].lower()
                     fname = _save_image(img_bytes, ext, sheet_name, defect_idx)
-                    if fname:
-                        result.setdefault(defect_idx, []).append(fname)
 
-            # ── 方式二：IMAGE() richValue 格式（儲存格嵌入）──
+                    if fname:
+                        result.setdefault(defect_idx, [])
+                        result[defect_idx].append({
+                            "row": draw_row,
+                            "file": fname
+                        })
+
+            # ───── IMAGE() 圖片 ─────
             vm_to_media = _build_richvalue_map(z)
             if vm_to_media:
                 for cell_info in _scan_sheet_richvalue_cells(z, sheetnum):
-                    draw_row   = cell_info["draw_row"]
-                    vm_idx     = cell_info["vm"]
-                    media_key  = vm_to_media.get(vm_idx)
+                    draw_row  = cell_info["draw_row"]
+                    vm_idx    = cell_info["vm"]
+                    media_key = vm_to_media.get(vm_idx)
+
                     if not media_key or media_key not in all_files:
                         continue
-                    defect_idx = _find_defect_idx(draw_row, defect_row_ranges)
+
+                    defect_idx = _find_defect_idx(draw_row, row_starts)
                     if defect_idx is None:
                         continue
+
                     img_bytes = z.read(media_key)
                     ext = media_key.rsplit(".", 1)[-1].lower()
                     fname = _save_image(img_bytes, ext, sheet_name, defect_idx)
+
                     if fname:
-                        result.setdefault(defect_idx, []).append(fname)
+                        result.setdefault(defect_idx, [])
+                        result[defect_idx].append({
+                            "row": draw_row,
+                            "file": fname
+                        })
+
+            # 🔥 排序（關鍵）
+            for k in result:
+                result[k] = [x["file"] for x in sorted(result[k], key=lambda x: x["row"])]
 
     except Exception as e:
         app.logger.error(f"extract_and_cache_images error: {e}")
+
     return result
 
 
@@ -318,6 +340,57 @@ def load_sheets():
 
 
 def load_sheet_data(sheet_name):
+    path = get_excel_path()
+    if not path:
+        return None, [], []
+    try:
+        raw = pd.read_excel(path, sheet_name=sheet_name, header=0)
+        raw.columns = [str(c).strip() for c in raw.columns]
+        actual_cols = list(raw.columns)
+
+        col_defect = find_col(raw.columns, COL_DEFECT)
+        col_reg    = find_col(raw.columns, COL_REG)
+        if col_defect is None:
+            return None, actual_cols, []
+
+        records = []
+        row_starts = []
+        current = None
+
+        for enum_idx, (_, row) in enumerate(raw.iterrows()):
+            draw_row = enum_idx + 1
+
+            val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
+            reg_val = str(row[col_reg]).strip() if col_reg and pd.notna(row[col_reg]) else ""
+
+            if val and val not in ("nan", ""):
+                if current is not None:
+                    records.append(current)
+
+                current = {
+                    COL_DEFECT: val,
+                    COL_REG: reg_val,
+                    COL_CONTENT: ""
+                }
+
+                # 🔥 核心：只記「缺失開始的row」
+                row_starts.append(draw_row)
+
+            else:
+                if current is not None and reg_val:
+                    sep = "\n" if current[COL_CONTENT] else ""
+                    current[COL_CONTENT] += sep + reg_val
+
+        if current is not None:
+            records.append(current)
+
+        df = pd.DataFrame(records)
+
+        # 🔥 注意：回傳 row_starts（不是 row_ranges）
+        return df, actual_cols, row_starts
+
+    except Exception as e:
+        return None, [str(e)], []
     """
     Excel 結構「兩行一組」:
       行A: 項次, 缺失項目, 法源依據(短)
@@ -407,7 +480,7 @@ def defects(sheet_name):
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
 def regulation(sheet_name, item_index):
-    df, actual_cols, row_ranges = load_sheet_data(sheet_name)
+    df, actual_cols, row_starts = load_sheet_data(sheet_name)
     if df is None or item_index >= len(df):
         return redirect(url_for("index"))
 
@@ -427,7 +500,7 @@ def regulation(sheet_name, item_index):
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
 
     # 從 Excel 提取圖片（只提取這個工作表一次）
-    extract_and_cache_images(sheet_name, row_ranges)
+    extract_and_cache_images(sheet_name, row_starts)
 
     row          = df.iloc[item_index]
     defect       = row[COL_DEFECT]
