@@ -55,238 +55,185 @@ def find_col(columns, target):
 
 # ─── xlsx image extraction ────────────────────────────────────────────────────
 
-def _build_workbook_map(z):
+def _build_sheet_drawing_map(z):
     """
-    回傳:
-      name_to_sheetnum  : { sheet名稱: "N" }
-      sheetnum_to_dnum  : { "N": "M" }  (有 drawing 的 sheet)
+    回傳 { sheet_file_number: drawing_number } 以及 { sheet_name: sheet_file_number }
     """
-    all_files = z.namelist()
-    wb_xml  = ET.fromstring(z.read("xl/workbook.xml").decode())
-    wb_rels = ET.fromstring(z.read("xl/_rels/workbook.xml.rels").decode())
+    # workbook.xml → sheet name → rId
+    wb_xml   = ET.fromstring(z.read("xl/workbook.xml").decode())
+    wb_rels  = ET.fromstring(z.read("xl/_rels/workbook.xml.rels").decode())
 
-    rid_to_snum = {}
+    # rId → sheet file number
+    rid_to_sheetnum = {}
     for rel in wb_rels:
-        t = rel.get("Target", ""); rid = rel.get("Id", "")
-        if "sheet" in t.lower():
-            rid_to_snum[rid] = t.replace("worksheets/sheet", "").replace(".xml", "")
-
-    name_to_snum = {}
-    for s in wb_xml.findall(f".//{{{NS_SS}}}sheet"):
-        name = s.get("name", "")
-        rid  = s.get(f"{{{NS_R}}}id", "")
-        if rid in rid_to_snum:
-            name_to_snum[name] = rid_to_snum[rid]
-
-    snum_to_dnum = {}
-    for snum in rid_to_snum.values():
-        rp = f"xl/worksheets/_rels/sheet{snum}.xml.rels"
-        if rp not in all_files:
-            continue
-        rr = ET.fromstring(z.read(rp).decode())
-        for rel in rr:
-            t = rel.get("Target", "")
-            if "drawing" in t.lower():
-                snum_to_dnum[snum] = t.split("drawing")[-1].replace(".xml", "")
-
-    return name_to_snum, snum_to_dnum
-
-
-def _build_richvalue_map(z):
-    """
-    解析 Excel IMAGE() 函數的 richData 格式。
-    回傳 { vm_index: "xl/media/imageN.png" }
-    vm_index 對應 cell 的 vm 屬性值。
-    """
-    all_files = z.namelist()
-    rv_rel_path  = "xl/richData/richValueRel.xml"
-    rv_rels_path = "xl/richData/_rels/richValueRel.xml.rels"
-    rv_data_path = "xl/richData/rdrichvalue.xml"
-    meta_path    = "xl/metadata.xml"
-
-    if rv_rel_path not in all_files or rv_rels_path not in all_files:
-        return {}
-
-    # rId → media path
-    rid_to_media = {}
-    for rel in ET.fromstring(z.read(rv_rels_path).decode()):
-        rid    = rel.get("Id", "")
         target = rel.get("Target", "")
-        rid_to_media[rid] = "xl/" + target.replace("../", "")
+        rid    = rel.get("Id", "")
+        if "sheet" in target.lower():
+            num = target.replace("worksheets/sheet", "").replace(".xml", "")
+            rid_to_sheetnum[rid] = num
 
-    # richValueRel index (0-based) → rId
-    NS_RVR = "http://schemas.microsoft.com/office/spreadsheetml/2022/richvaluerel"
-    rv_rel_root = ET.fromstring(z.read(rv_rel_path).decode())
-    idx_to_rid = {}
-    for i, rel in enumerate(rv_rel_root):
-        rid = rel.get(f"{{{NS_R}}}id", "") or rel.get("r:id", "")
-        idx_to_rid[i] = rid
+    # sheet name → sheet file number
+    name_to_sheetnum = {}
+    ns = {"ns": NS_SS, "r": NS_R}
+    for s in wb_xml.findall(".//ns:sheet", ns) or wb_xml.findall(".//sheet"):
+        name = s.get("name", "")
+        rid  = s.get(f"{{{NS_R}}}id", "") or s.get("r:id", "")
+        if rid in rid_to_sheetnum:
+            name_to_sheetnum[name] = rid_to_sheetnum[rid]
 
-    # rdrichvalue: rv entry N → LocalImageIdentifier (first v value)
-    rv_local_ids = []
-    if rv_data_path in all_files:
-        NS_RD = "http://schemas.microsoft.com/office/spreadsheetml/2017/richdata"
-        for rv in ET.fromstring(z.read(rv_data_path).decode()):
-            vals = [v.text for v in rv.findall(f"{{{NS_RD}}}v")]
-            rv_local_ids.append(int(vals[0]) if vals else 0)
-
-    # metadata: futureMetadata index (= vm value) → rvb i → rv index → LocalImageIdentifier
-    if meta_path not in all_files:
-        return {}
-    NS_META = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-    NS_XLRD = "http://schemas.microsoft.com/office/spreadsheetml/2017/richdata"
-    meta_root = ET.fromstring(z.read(meta_path).decode())
-
-    vm_to_media = {}
-    fm = meta_root.find(f".//{{{NS_META}}}futureMetadata")
-    if fm is None:
-        return {}
-    for vm_idx, bk in enumerate(fm.findall(f"{{{NS_META}}}bk")):
-        rvb = bk.find(f".//{{{NS_XLRD}}}rvb")
-        if rvb is None:
+    # sheet file number → drawing number
+    sheetnum_to_drawing = {}
+    all_files = z.namelist()
+    for sheetnum in rid_to_sheetnum.values():
+        rels_path = f"xl/worksheets/_rels/sheet{sheetnum}.xml.rels"
+        if rels_path not in all_files:
             continue
-        rv_idx = int(rvb.get("i", 0))
-        if rv_idx < len(rv_local_ids):
-            local_id = rv_local_ids[rv_idx]
-            rid = idx_to_rid.get(local_id, "")
-            if rid in rid_to_media:
-                vm_to_media[vm_idx] = rid_to_media[rid]
-    return vm_to_media
+        rels_root = ET.fromstring(z.read(rels_path).decode())
+        for rel in rels_root:
+            target = rel.get("Target", "")
+            rtype  = rel.get("Type", "")
+            if "drawing" in rtype.lower() or "drawing" in target.lower():
+                # "../drawings/drawing3.xml" → 3
+                d_num = target.split("drawing")[-1].replace(".xml", "")
+                sheetnum_to_drawing[sheetnum] = d_num
 
-
-def _scan_sheet_richvalue_cells(z, sheetnum):
-    """
-    掃描工作表 XML，找出所有含 vm 屬性的 cell（IMAGE() 函數）。
-    回傳 [ { draw_row: int, vm: int } ]
-    draw_row = Excel row - 1（draw_row 1 = 第一筆資料行）
-    """
-    sheet_path = f"xl/worksheets/sheet{sheetnum}.xml"
-    if sheet_path not in z.namelist():
-        return []
-    NS_CELL = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-    root = ET.fromstring(z.read(sheet_path).decode())
-    results = []
-    for row_el in root.findall(f".//{{{NS_CELL}}}row"):
-        for c in row_el.findall(f"{{{NS_CELL}}}c"):
-            vm = c.get("vm")
-            if vm is not None:
-                ref = c.get("r", "")
-                excel_row = int("".join(filter(str.isdigit, ref)))
-                draw_row  = excel_row - 1   # draw_row 1 = Excel row 2 = first data row
-                results.append({"draw_row": draw_row, "vm": int(vm)})
-    return results
+    return name_to_sheetnum, sheetnum_to_drawing
 
 
 def _parse_drawing_images(z, d_num):
-    """回傳 [ {draw_row: int, media: str} ]（drawing 格式，draw_row 已是 0-indexed）"""
-    d_path = f"xl/drawings/drawing{d_num}.xml"
-    d_rels = f"xl/drawings/_rels/drawing{d_num}.xml.rels"
+    """
+    回傳 [ {row: int, col: int, media_path: str} ]
+    row 是 0-indexed，對應 Excel 行號（0 = 第一列 = header）
+    """
+    d_path    = f"xl/drawings/drawing{d_num}.xml"
+    d_rels    = f"xl/drawings/_rels/drawing{d_num}.xml.rels"
     all_files = z.namelist()
     if d_path not in all_files:
         return []
+
+    # rId → media path
     rid_to_media = {}
     if d_rels in all_files:
-        for rel in ET.fromstring(z.read(d_rels).decode()):
+        rels_root = ET.fromstring(z.read(d_rels).decode())
+        for rel in rels_root:
             rid    = rel.get("Id", "")
-            target = rel.get("Target", "")
-            rid_to_media[rid] = "xl/" + target.replace("../", "")
+            target = rel.get("Target", "")   # "../media/imageN.png"
+            media  = "xl/" + target.replace("../", "")
+            rid_to_media[rid] = media
+
     result = []
     root = ET.fromstring(z.read(d_path).decode())
     for anchor in root:
         tag = anchor.tag.split("}")[-1]
         if tag not in ("twoCellAnchor", "oneCellAnchor", "absoluteAnchor"):
             continue
-        fe = anchor.find(f"{{{NS_XDR}}}from")
-        row = 0
-        if fe is not None:
-            r_el = fe.find(f"{{{NS_XDR}}}row")
+        from_el = anchor.find(f"{{{NS_XDR}}}from")
+        row = col = 0
+        if from_el is not None:
+            r_el = from_el.find(f"{{{NS_XDR}}}row")
+            c_el = from_el.find(f"{{{NS_XDR}}}col")
             row = int(r_el.text) if r_el is not None else 0
+            col = int(c_el.text) if c_el is not None else 0
         blip = anchor.find(f".//{{{NS_A}}}blip")
         if blip is None:
             continue
         rid = blip.get(f"{{{NS_R}}}embed", "")
         if rid in rid_to_media:
-            result.append({"draw_row": row, "media": rid_to_media[rid]})
+            result.append({"row": row, "col": col, "media": rid_to_media[rid]})
     return result
-
-
-def _save_image(img_bytes, ext, sheet_name, defect_idx):
-    """存圖片到對應資料夾，回傳 filename 或 None"""
-    if ext == "emf":
-        return None   # EMF 格式瀏覽器無法顯示，跳過
-    img_hash = hashlib.md5(img_bytes).hexdigest()[:10]
-    filename = f"exc_{img_hash}.{ext}"
-    folder   = _img_folder(sheet_name, defect_idx)
-    filepath = os.path.join(folder, filename)
-    if not os.path.exists(filepath):
-        with open(filepath, "wb") as f:
-            f.write(img_bytes)
-    return filename
-
-
-def _find_defect_idx(draw_row, defect_row_ranges):
-    for i, (s, e) in enumerate(defect_row_ranges):
-        if s <= draw_row <= e:
-            return i
-    return None
 
 
 def extract_and_cache_images(sheet_name, defect_row_ranges):
     """
-    從 xlsx 提取圖片（支援 Drawing 格式 和 IMAGE() richValue 格式），
-    存到 static/images/<hash>/<defect_idx>/，
+    從 xlsx 提取圖片，依 drawing row 對應到 defect index，
+    存到 static/images/<sheet>/<defect_idx>/，
     回傳 { defect_idx: [filename, ...] }
+    已存在的圖片不重複提取。
     """
     path = get_excel_path()
     if not path:
         return {}
-    result = {}
     try:
         with zipfile.ZipFile(path) as z:
-            all_files = z.namelist()
-            name_to_snum, snum_to_dnum = _build_workbook_map(z)
-            sheetnum = name_to_snum.get(sheet_name)
+            name_to_sheetnum, sheetnum_to_drawing = _build_sheet_drawing_map(z)
+
+            sheetnum = name_to_sheetnum.get(sheet_name)
             if sheetnum is None:
                 return {}
+            d_num = sheetnum_to_drawing.get(sheetnum)
+            if d_num is None:
+                return {}
 
-            # ── 方式一：Drawing 格式（浮動圖片）───────────────
-            d_num = snum_to_dnum.get(sheetnum)
-            if d_num:
-                for img_info in _parse_drawing_images(z, d_num):
-                    draw_row  = img_info["draw_row"]
-                    media_key = img_info["media"]
-                    if media_key not in all_files:
-                        continue
-                    defect_idx = _find_defect_idx(draw_row, defect_row_ranges)
-                    if defect_idx is None:
-                        continue
-                    img_bytes = z.read(media_key)
-                    ext = media_key.rsplit(".", 1)[-1].lower()
-                    fname = _save_image(img_bytes, ext, sheet_name, defect_idx)
-                    if fname:
-                        result.setdefault(defect_idx, []).append(fname)
+            drawing_imgs = _parse_drawing_images(z, d_num)
+            result = {}
 
-            # ── 方式二：IMAGE() richValue 格式（儲存格嵌入）──
-            vm_to_media = _build_richvalue_map(z)
-            if vm_to_media:
-                for cell_info in _scan_sheet_richvalue_cells(z, sheetnum):
-                    draw_row   = cell_info["draw_row"]
-                    vm_idx     = cell_info["vm"]
-                    media_key  = vm_to_media.get(vm_idx)
-                    if not media_key or media_key not in all_files:
-                        continue
-                    defect_idx = _find_defect_idx(draw_row, defect_row_ranges)
-                    if defect_idx is None:
-                        continue
-                    img_bytes = z.read(media_key)
-                    ext = media_key.rsplit(".", 1)[-1].lower()
-                    fname = _save_image(img_bytes, ext, sheet_name, defect_idx)
-                    if fname:
-                        result.setdefault(defect_idx, []).append(fname)
+            for img_info in drawing_imgs:
+                draw_row  = img_info["row"]
+                media_key = img_info["media"]
 
+                # 找對應的 defect index
+                defect_idx = None
+                for i, (start_row, end_row) in enumerate(defect_row_ranges):
+                    if start_row <= draw_row <= end_row:
+                        defect_idx = i
+                        break
+                if defect_idx is None:
+                    continue
+
+                if media_key not in z.namelist():
+                    continue
+                img_bytes = z.read(media_key)
+                ext = media_key.rsplit(".", 1)[-1].lower()
+
+                # EMF → PNG via ImageMagick
+                if ext == "emf":
+                    ext = "png"
+                    img_bytes = _convert_emf_to_png(img_bytes)
+                    if img_bytes is None:
+                        continue
+
+                img_hash = hashlib.md5(img_bytes).hexdigest()[:10]
+                filename = f"exc_{img_hash}.{ext}"
+                folder   = _img_folder(sheet_name, defect_idx)
+                filepath = os.path.join(folder, filename)
+                if not os.path.exists(filepath):
+                    with open(filepath, "wb") as f:
+                        f.write(img_bytes)
+                result.setdefault(defect_idx, []).append(filename)
     except Exception as e:
         app.logger.error(f"extract_and_cache_images error: {e}")
+        return {}
     return result
+
+
+def _convert_emf_to_png(emf_bytes):
+    """用 ImageMagick magick 把 EMF 轉成 PNG bytes，失敗回傳 None"""
+    import tempfile
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".emf", delete=False) as f_in:
+            f_in.write(emf_bytes)
+            in_path = f_in.name
+        out_path = in_path.replace(".emf", ".png")
+        result = subprocess.run(
+            ["magick", in_path, out_path],
+            capture_output=True, timeout=15
+        )
+        if result.returncode == 0 and os.path.exists(out_path):
+            with open(out_path, "rb") as f:
+                data = f.read()
+            return data
+        return None
+    except Exception:
+        return None
+    finally:
+        try:
+            os.unlink(in_path)
+        except Exception:
+            pass
+        try:
+            os.unlink(out_path)
+        except Exception:
+            pass
 
 
 def _sheet_dir(sheet_name):
@@ -318,58 +265,77 @@ def load_sheets():
 
 
 def load_sheet_data(sheet_name):
-    """
-    Excel 結構「兩行一組」:
-      行A: 項次, 缺失項目, 法源依據(短)
-      行B: NaN,  NaN,      法規詳細內容
-    同時回傳 defect_row_ranges: [(start_draw_row, end_draw_row), ...] (0-indexed)
-    draw_row 0 = Excel header 行, draw_row 1 = 第一筆資料行
-    """
     path = get_excel_path()
     if not path:
         return None, [], []
+
     try:
-        raw = pd.read_excel(path, sheet_name=sheet_name, header=0)
+        # 第一次讀（自動判斷）
+        raw = pd.read_excel(path, sheet_name=sheet_name)
+        raw = raw.fillna("")
         raw.columns = [str(c).strip() for c in raw.columns]
+        raw = raw.dropna(how="all")
+
         actual_cols = list(raw.columns)
 
+        # 找欄位
         col_defect = find_col(raw.columns, COL_DEFECT)
-        col_reg    = find_col(raw.columns, COL_REG)
+        col_reg = find_col(raw.columns, COL_REG)
+
+        # 如果抓不到 → 換 header=1
+        if col_defect is None:
+            raw = pd.read_excel(path, sheet_name=sheet_name, header=1)
+            raw = raw.fillna("")
+            raw.columns = [str(c).strip() for c in raw.columns]
+            raw = raw.dropna(how="all")
+
+            actual_cols = list(raw.columns)
+            col_defect = find_col(raw.columns, COL_DEFECT)
+            col_reg = find_col(raw.columns, COL_REG)
+
         if col_defect is None:
             return None, actual_cols, []
 
-        records     = []
-        row_ranges  = []
-        current     = None
+        records = []
+        row_ranges = []
+        current = None
         current_start = None
 
         for enum_idx, (_, row) in enumerate(raw.iterrows()):
-            draw_row = enum_idx + 1   # +1 to skip header row (draw_row 0 = header)
-            val     = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
-            reg_val = str(row[col_reg]).strip()    if col_reg and pd.notna(row[col_reg]) else ""
+            draw_row = enum_idx + 1
 
-            if val and val not in ("nan", ""):
+            val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
+            reg_val = str(row[col_reg]).strip() if col_reg and pd.notna(row[col_reg]) else ""
+
+            if val:
                 if current is not None:
                     row_ranges.append((current_start, draw_row - 1))
                     records.append(current)
-                current       = {COL_DEFECT: val, COL_REG: reg_val, COL_CONTENT: ""}
+
+                current = {
+                    COL_DEFECT: val,
+                    COL_REG: reg_val,
+                    COL_CONTENT: ""
+                }
                 current_start = draw_row
             else:
                 if current is not None and reg_val:
-                    sep = "\n" if current[COL_CONTENT] else ""
-                    current[COL_CONTENT] += sep + reg_val
+                    if current[COL_CONTENT]:
+                        current[COL_CONTENT] += "\n"
+                    current[COL_CONTENT] += reg_val
 
         if current is not None:
             row_ranges.append((current_start, 99999))
             records.append(current)
 
-        df = pd.DataFrame(records) if records else pd.DataFrame(columns=[COL_DEFECT, COL_REG, COL_CONTENT])
+        df = pd.DataFrame(records) if records else pd.DataFrame(
+            columns=[COL_DEFECT, COL_REG, COL_CONTENT]
+        )
+
         return df, actual_cols, row_ranges
 
     except Exception as e:
         return None, [str(e)], []
-
-
 # ─── routes ───────────────────────────────────────────────────────────────────
 
 @app.route("/", methods=["GET", "POST"])
