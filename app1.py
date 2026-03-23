@@ -225,52 +225,15 @@ def _save_image(img_bytes, ext, sheet_name, defect_idx):
 
 
 def _find_defect_idx(draw_row, row_starts):
-    closest_idx = None
-    min_dist = float("inf")
-
-    for i, start in enumerate(row_starts):
-        dist = abs(draw_row - start)
-
-        if dist < min_dist:
-            min_dist = dist
-            closest_idx = i
-
-    return closest_idx
-    closest_idx = None
-    min_dist = float("inf")
-
-    for i, (s, e) in enumerate(defect_row_ranges):
     idx = None
-    min_dist = float("inf")
 
     for i, start in enumerate(row_starts):
-        dist = abs(draw_row - start)
+        if start <= draw_row:
+            idx = i
+        else:
+            break
 
-        if dist < min_dist:
-            min_dist = dist
-            closest_idx = i
-
-    return closest_idx
-    closest_idx = None
-    min_dist = float("inf")
-
-    for i, (s, e) in enumerate(defect_row_ranges):
-        # 如果在範圍內 → 直接回傳
-        if s <= draw_row <= e:
-            return i
-
-        # 計算距離（找最近的）
-        dist = min(abs(draw_row - s), abs(draw_row - e))
-
-        if dist < min_dist:
-            min_dist = dist
-            closest_idx = i
-
-    return closest_idx
-    for i, (s, e) in enumerate(defect_row_ranges):
-        if s <= draw_row <= e:
-            return i
-    return None
+    return idx
 
 
 def extract_and_cache_images(sheet_name, row_starts):
