@@ -225,22 +225,6 @@ def _save_image(img_bytes, ext, sheet_name, defect_idx):
 
 
 def _find_defect_idx(draw_row, defect_row_ranges):
-    closest_idx = None
-    min_dist = float("inf")
-
-    for i, (s, e) in enumerate(defect_row_ranges):
-        # 如果在範圍內 → 直接回傳
-        if s <= draw_row <= e:
-            return i
-
-        # 計算距離（找最近的）
-        dist = min(abs(draw_row - s), abs(draw_row - e))
-
-        if dist < min_dist:
-            min_dist = dist
-            closest_idx = i
-
-    return closest_idx
     for i, (s, e) in enumerate(defect_row_ranges):
         if s <= draw_row <= e:
             return i
@@ -479,6 +463,5 @@ def serve_image(sheet_name, item_index, filename):
 
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
