@@ -224,7 +224,18 @@ def _save_image(img_bytes, ext, sheet_name, defect_idx):
     return filename
 
 
-def _find_defect_idx(draw_row, defect_row_ranges):
+def _find_defect_idx(draw_row, row_starts):
+    closest_idx = None
+    min_dist = float("inf")
+
+    for i, start in enumerate(row_starts):
+        dist = abs(draw_row - start)
+
+        if dist < min_dist:
+            min_dist = dist
+            closest_idx = i
+
+    return closest_idx
     closest_idx = None
     min_dist = float("inf")
 
@@ -273,7 +284,7 @@ def extract_and_cache_images(sheet_name, defect_row_ranges):
                     media_key = img_info["media"]
                     if media_key not in all_files:
                         continue
-                    defect_idx = _find_defect_idx(draw_row, defect_row_ranges)
+                    defect_idx = _find_defect_idx(draw_row, row_starts)
                     if defect_idx is None:
                         continue
                     img_bytes = z.read(media_key)
@@ -334,6 +345,57 @@ def load_sheets():
 
 
 def load_sheet_data(sheet_name):
+    path = get_excel_path()
+    if not path:
+        return None, [], []
+    try:
+        raw = pd.read_excel(path, sheet_name=sheet_name, header=0)
+        raw.columns = [str(c).strip() for c in raw.columns]
+        actual_cols = list(raw.columns)
+
+        col_defect = find_col(raw.columns, COL_DEFECT)
+        col_reg    = find_col(raw.columns, COL_REG)
+        if col_defect is None:
+            return None, actual_cols, []
+
+        records = []
+        row_starts = []
+        current = None
+
+        for enum_idx, (_, row) in enumerate(raw.iterrows()):
+            draw_row = enum_idx + 1
+
+            val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
+            reg_val = str(row[col_reg]).strip() if col_reg and pd.notna(row[col_reg]) else ""
+
+            if val and val not in ("nan", ""):
+                if current is not None:
+                    records.append(current)
+
+                current = {
+                    COL_DEFECT: val,
+                    COL_REG: reg_val,
+                    COL_CONTENT: ""
+                }
+
+                # 🔥 核心：只記「缺失開始的row」
+                row_starts.append(draw_row)
+
+            else:
+                if current is not None and reg_val:
+                    sep = "\n" if current[COL_CONTENT] else ""
+                    current[COL_CONTENT] += sep + reg_val
+
+        if current is not None:
+            records.append(current)
+
+        df = pd.DataFrame(records)
+
+        # 🔥 注意：回傳 row_starts（不是 row_ranges）
+        return df, actual_cols, row_starts
+
+    except Exception as e:
+        return None, [str(e)], []
     """
     Excel 結構「兩行一組」:
       行A: 項次, 缺失項目, 法源依據(短)
@@ -423,7 +485,7 @@ def defects(sheet_name):
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
 def regulation(sheet_name, item_index):
-    df, actual_cols, row_ranges = load_sheet_data(sheet_name)
+    df, actual_cols, row_starts = load_sheet_data(sheet_name)
     if df is None or item_index >= len(df):
         return redirect(url_for("index"))
 
@@ -443,7 +505,7 @@ def regulation(sheet_name, item_index):
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
 
     # 從 Excel 提取圖片（只提取這個工作表一次）
-    extract_and_cache_images(sheet_name, row_ranges)
+    extract_and_cache_images(sheet_name, row_starts)
 
     row          = df.iloc[item_index]
     defect       = row[COL_DEFECT]
