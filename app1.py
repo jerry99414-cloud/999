@@ -225,15 +225,14 @@ def _save_image(img_bytes, ext, sheet_name, defect_idx):
 
 
 def _find_defect_idx(draw_row, row_starts):
-    idx = None
+    for i in range(len(row_starts)):
+        start = row_starts[i]
+        end = row_starts[i + 1] if i + 1 < len(row_starts) else float("inf")
 
-    for i, start in enumerate(row_starts):
-        if start <= draw_row:
-            idx = i
-        else:
-            break
+        if start <= draw_row < end:
+            return i
 
-    return idx
+    return None
 
 
 def extract_and_cache_images(sheet_name, row_starts):
