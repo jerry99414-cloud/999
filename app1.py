@@ -412,7 +412,7 @@ def regulation(sheet_name, item_index):
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
 
     # 從 Excel 提取圖片（只提取這個工作表一次）
-    extract_and_cache_images(sheet_name, row_ranges)
+    #extract_and_cache_images(sheet_name, row_ranges)
 
     row          = df.iloc[item_index]
     defect       = row[COL_DEFECT]
