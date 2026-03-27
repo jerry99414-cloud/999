@@ -507,7 +507,7 @@ def regulation_db(item_id):
     defect, reg = row
 
     # 圖片資料夾
-    image_folder = os.path.join("static", "images", str(item_id))
+    image_folder = os.path.join(BASE_DIR, "static", "images", str(item_id))
     images = os.listdir(image_folder) if os.path.exists(image_folder) else []
 
     return render_template(
