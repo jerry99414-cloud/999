@@ -7,9 +7,29 @@
   <h2>📂 系統分類</h2>
 
   {% if sheets %}
+
+    <!-- 🔽 下拉式選單 -->
+    <div style="margin-bottom:20px;">
+      <p style="color:#718096;font-size:0.9rem;margin-bottom:8px;">
+        快速選擇系統
+      </p>
+      <form onchange="if(this.system.value) location=this.system.value;">
+        <select name="system" style="padding:8px;border-radius:8px;">
+          <option value="">請選擇系統</option>
+          {% for sheet in sheets %}
+            <option value="{{ url_for('defects', sheet_name=sheet) }}">
+              {{ sheet }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+
+    <!-- 🔹 原本卡片模式（保留） -->
     <p style="color:#718096;font-size:0.9rem;margin-bottom:18px;">
-      共 {{ sheets|length }} 個系統，點擊類別以查看缺失項目
+      共 {{ sheets|length }} 個系統，或點擊下方分類
     </p>
+
     <div class="grid">
       {% for sheet in sheets %}
         <a class="chip" href="{{ url_for('defects', sheet_name=sheet) }}">
@@ -18,6 +38,7 @@
       {% endfor %}
     </div>
 
+    <!-- 🔹 上傳區 -->
     <div class="upload-box" style="margin-top:32px;">
       <p style="color:#718096;font-size:0.85rem;margin-bottom:8px;">更換 Excel 檔案</p>
       <form method="POST" enctype="multipart/form-data">
@@ -26,8 +47,13 @@
         <button type="submit">上傳新檔案</button>
       </form>
     </div>
+
   {% else %}
-    <p style="color:#718096;margin-bottom:8px;">尚未上傳 Excel 檔案。請上傳包含法規資料的 Excel 檔案。</p>
+
+    <p style="color:#718096;margin-bottom:8px;">
+      尚未上傳 Excel 檔案。請上傳包含法規資料的 Excel 檔案。
+    </p>
+
     <div class="upload-box">
       <div style="font-size:2rem;margin-bottom:10px;">📄</div>
       <p style="font-weight:600;margin-bottom:4px;">上傳 Excel 法規檔案</p>
@@ -40,6 +66,7 @@
         <button type="submit">上傳檔案</button>
       </form>
     </div>
+
   {% endif %}
 </div>
 {% endblock %}
