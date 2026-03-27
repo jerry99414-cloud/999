@@ -520,29 +520,7 @@ def regulation_db(item_id):
         item_index=0
     )
 
-@app.route("/regulation_db/<int:item_id>")
-def regulation_db(item_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
 
-    c.execute("SELECT defect, reg FROM defects WHERE id=?", (item_id,))
-    row = c.fetchone()
-    conn.close()
-
-    if not row:
-        return "找不到資料"
-
-    defect, reg = row
-
-    return render_template(
-        "regulation.html",
-        sheet_name="新增資料",
-        defect=defect,
-        reg_text=reg,
-        content_text="",
-        images=[],
-        item_index=0
-    )
 
 if __name__ == "__main__":
     init_db()
