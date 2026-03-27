@@ -1,4 +1,3 @@
-import sqlite3
 import os
 import hashlib
 import subprocess
@@ -31,23 +30,7 @@ NS_R   = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 NS_PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 NS_SS  = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 
-DB_PATH = os.path.join(BASE_DIR, "data.db")
 
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS defects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sheet_name TEXT,
-            defect TEXT,
-            reg TEXT
-        )
-    """)
-
-    conn.commit()
-    conn.close()
 # ─── helpers ─────────────────────────────────────────────────────────────────
 
 def allowed_excel(f):
@@ -385,33 +368,26 @@ def defects(sheet_name):
     if df is None:
         return redirect(url_for("index"))
 
+    # ===== Excel資料 =====
     excel_items = df[COL_DEFECT].tolist()
 
-    # 🔥 讀SQLite
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, defect FROM defects WHERE sheet_name=?", (sheet_name,))
-    db_items = c.fetchall()
-    conn.close()
+    # ===== JSON新增資料 =====
+    data = load_json()
+    extra = data.get(sheet_name, [])
 
+    # ===== 合併（新增放前面）=====
     items = []
 
-    # 新增資料
-    for row in db_items:
-        items.append({
-            "text": "🆕 " + row[1],
-            "type": "db",
-            "id": row[0]
-        })
+    for item in extra:
+        items.append("🆕 " + item["缺失項目"])
 
-    # Excel資料
-    for i, x in enumerate(excel_items):
-        items.append({
-            "text": x,
-            "type": "excel",
-            "index": i
-        })
+    items += excel_items
 
+    return render_template("defects.html", sheet_name=sheet_name, items=items)
+    df, _, _ = load_sheet_data(sheet_name)
+    if df is None:
+        return redirect(url_for("index"))
+    items = df[COL_DEFECT].tolist()
     return render_template("defects.html", sheet_name=sheet_name, items=items)
 
 
@@ -471,62 +447,44 @@ def delete_image(sheet_name, item_index, filename):
 def serve_image(sheet_name, item_index, filename):
     return send_from_directory(_img_folder(sheet_name, item_index), filename)
 
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
+# ================== JSON 資料（新增缺失用） ==================
+import json
+
+DATA_JSON = os.path.join(BASE_DIR, "data", "defects.json")
+
+def load_json():
+    if not os.path.exists(DATA_JSON):
+        return {}
+    with open(DATA_JSON, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_json(data):
+    os.makedirs(os.path.dirname(DATA_JSON), exist_ok=True)
+    with open(DATA_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+# ================== 新增缺失頁面 ==================
 @app.route("/add_defect/<sheet_name>", methods=["GET", "POST"])
 def add_defect(sheet_name):
     if request.method == "POST":
         defect = request.form.get("defect")
         reg = request.form.get("reg")
 
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
+        if not defect:
+            return redirect(url_for("defects", sheet_name=sheet_name))
 
-        c.execute(
-            "INSERT INTO defects (sheet_name, defect, reg) VALUES (?, ?, ?)",
-            (sheet_name, defect, reg)
-        )
-
-        conn.commit()
-        conn.close()
+        data = load_json()
+        data.setdefault(sheet_name, []).append({
+            "缺失項目": defect,
+            "法源依據": reg
+        })
+        save_json(data)
 
         return redirect(url_for("defects", sheet_name=sheet_name))
 
     return render_template("add_defect.html", sheet_name=sheet_name)
-
-@app.route("/regulation_db/<int:item_id>")
-def regulation_db(item_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-
-    c.execute("SELECT defect, reg FROM defects WHERE id=?", (item_id,))
-    row = c.fetchone()
-    conn.close()
-
-    if not row:
-        return "找不到資料"
-
-    defect, reg = row
-
-    # 圖片資料夾
-    image_folder = os.path.join(BASE_DIR, "static", "images", str(item_id))
-
-    try:
-         images = os.listdir(image_folder)
-    except:
-          images = []
-
-    return render_template(
-        "regulation.html",
-        sheet_name="新增資料",
-        defect=defect,
-        reg_text=reg,
-        content_text="",
-        images=images,
-        item_index=0
-    )
-
-
-
-if __name__ == "__main__":
-    init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
