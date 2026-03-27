@@ -367,6 +367,26 @@ def defects(sheet_name):
     df, _, _ = load_sheet_data(sheet_name)
     if df is None:
         return redirect(url_for("index"))
+
+    # ===== Excel資料 =====
+    excel_items = df[COL_DEFECT].tolist()
+
+    # ===== JSON新增資料 =====
+    data = load_json()
+    extra = data.get(sheet_name, [])
+
+    # ===== 合併（新增放前面）=====
+    items = []
+
+    for item in extra:
+        items.append("🆕 " + item["缺失項目"])
+
+    items += excel_items
+
+    return render_template("defects.html", sheet_name=sheet_name, items=items)
+    df, _, _ = load_sheet_data(sheet_name)
+    if df is None:
+        return redirect(url_for("index"))
     items = df[COL_DEFECT].tolist()
     return render_template("defects.html", sheet_name=sheet_name, items=items)
 
@@ -431,3 +451,40 @@ def serve_image(sheet_name, item_index, filename):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+# ================== JSON 資料（新增缺失用） ==================
+import json
+
+DATA_JSON = os.path.join(BASE_DIR, "data", "defects.json")
+
+def load_json():
+    if not os.path.exists(DATA_JSON):
+        return {}
+    with open(DATA_JSON, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_json(data):
+    os.makedirs(os.path.dirname(DATA_JSON), exist_ok=True)
+    with open(DATA_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+# ================== 新增缺失頁面 ==================
+@app.route("/add_defect/<sheet_name>", methods=["GET", "POST"])
+def add_defect(sheet_name):
+    if request.method == "POST":
+        defect = request.form.get("defect")
+        reg = request.form.get("reg")
+
+        if not defect:
+            return redirect(url_for("defects", sheet_name=sheet_name))
+
+        data = load_json()
+        data.setdefault(sheet_name, []).append({
+            "缺失項目": defect,
+            "法源依據": reg
+        })
+        save_json(data)
+
+        return redirect(url_for("defects", sheet_name=sheet_name))
+
+    return render_template("add_defect.html", sheet_name=sheet_name)
