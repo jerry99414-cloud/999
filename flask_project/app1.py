@@ -1,3 +1,4 @@
+import sqlite3
 import os
 import hashlib
 import subprocess
@@ -30,7 +31,23 @@ NS_R   = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 NS_PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 NS_SS  = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 
+DB_PATH = os.path.join(BASE_DIR, "data.db")
 
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS defects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sheet_name TEXT,
+            defect TEXT,
+            reg TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
 # ─── helpers ─────────────────────────────────────────────────────────────────
 
 def allowed_excel(f):
@@ -429,5 +446,5 @@ def serve_image(sheet_name, item_index, filename):
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    init_db()
+    app.run(host="0.0.0.0", port=5000, debug=True)
