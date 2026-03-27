@@ -508,7 +508,11 @@ def regulation_db(item_id):
 
     # 圖片資料夾
     image_folder = os.path.join(BASE_DIR, "static", "images", str(item_id))
-    images = os.listdir(image_folder) if os.path.exists(image_folder) else []
+
+    try:
+         images = os.listdir(image_folder)
+    except:
+          images = []
 
     return render_template(
         "regulation.html",
