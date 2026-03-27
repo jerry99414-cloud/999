@@ -384,7 +384,34 @@ def defects(sheet_name):
     df, _, _ = load_sheet_data(sheet_name)
     if df is None:
         return redirect(url_for("index"))
-    items = df[COL_DEFECT].tolist()
+
+    excel_items = df[COL_DEFECT].tolist()
+
+    # 🔥 讀SQLite
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, defect FROM defects WHERE sheet_name=?", (sheet_name,))
+    db_items = c.fetchall()
+    conn.close()
+
+    items = []
+
+    # 新增資料
+    for row in db_items:
+        items.append({
+            "text": "🆕 " + row[1],
+            "type": "db",
+            "id": row[0]
+        })
+
+    # Excel資料
+    for i, x in enumerate(excel_items):
+        items.append({
+            "text": x,
+            "type": "excel",
+            "index": i
+        })
+
     return render_template("defects.html", sheet_name=sheet_name, items=items)
 
 
@@ -444,7 +471,62 @@ def delete_image(sheet_name, item_index, filename):
 def serve_image(sheet_name, item_index, filename):
     return send_from_directory(_img_folder(sheet_name, item_index), filename)
 
+@app.route("/add_defect/<sheet_name>", methods=["GET", "POST"])
+def add_defect(sheet_name):
+    if request.method == "POST":
+        defect = request.form.get("defect")
+        reg = request.form.get("reg")
+
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+
+        c.execute(
+            "INSERT INTO defects (sheet_name, defect, reg) VALUES (?, ?, ?)",
+            (sheet_name, defect, reg)
+        )
+
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("defects", sheet_name=sheet_name))
+
+    return render_template("add_defect.html", sheet_name=sheet_name)
+
+@app.route("/regulation_db/<int:item_id>")
+def regulation_db(item_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    c.execute("SELECT defect, reg FROM defects WHERE id=?", (item_id,))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return "找不到資料"
+
+    defect, reg = row
+
+    # 圖片資料夾
+    image_folder = os.path.join(BASE_DIR, "static", "images", str(item_id))
+
+    try:
+         images = os.listdir(image_folder)
+    except:
+          images = []
+
+    return render_template(
+        "regulation.html",
+        sheet_name="新增資料",
+        defect=defect,
+        reg_text=reg,
+        content_text="",
+        images=images,
+        item_index=0
+    )
+
+
 
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=5000, debug=True)
+

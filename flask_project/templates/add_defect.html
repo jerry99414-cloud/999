@@ -1,20 +1,17 @@
-@app.route("/add_defect/<sheet_name>", methods=["GET", "POST"])
-def add_defect(sheet_name):
-    if request.method == "POST":
-        defect = request.form.get("defect")
-        reg = request.form.get("reg")
+{% extends "base.html" %}
 
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
+{% block content %}
+<div class="card">
+  <h2>➕ 新增缺失（{{ sheet_name }}）</h2>
 
-        c.execute(
-            "INSERT INTO defects (sheet_name, defect, reg) VALUES (?, ?, ?)",
-            (sheet_name, defect, reg)
-        )
+  <form method="POST">
+    <label>缺失項目</label><br>
+    <input name="defect" required style="width:100%;margin-bottom:10px;"><br>
 
-        conn.commit()
-        conn.close()
+    <label>法規依據</label><br>
+    <textarea name="reg" style="width:100%;height:120px;"></textarea><br><br>
 
-        return redirect(url_for("defects", sheet_name=sheet_name))
-
-    return render_template("add_defect.html", sheet_name=sheet_name)
+    <button type="submit">新增</button>
+  </form>
+</div>
+{% endblock %}
