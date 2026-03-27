@@ -237,8 +237,7 @@ def _convert_emf_to_png(emf_bytes):
 
 
 def _sheet_dir(sheet_name):
-    """用 hash 當資料夾名稱，避免中文被 secure_filename 全部清空而混用同一目錄"""
-    return hashlib.md5(sheet_name.encode("utf-8")).hexdigest()[:12]
+    return sheet_name
 
 
 def _img_folder(sheet_name, item_index):
