@@ -237,7 +237,8 @@ def _convert_emf_to_png(emf_bytes):
 
 
 def _sheet_dir(sheet_name):
-    return "electric" if sheet_name == "電氣" else sheet_name
+    print("DEBUG sheet_name =", sheet_name)
+    return sheet_name
 
 
 def _img_folder(sheet_name, item_index):
