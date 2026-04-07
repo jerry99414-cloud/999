@@ -391,9 +391,6 @@ def defects(sheet_name):
     return render_template("defects.html", sheet_name=sheet_name, items=items)
 
 
-@app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
-import os
-
 @app.route("/system/<sheet_name>/defect/<int:item_index>")
 def regulation(sheet_name, item_index):
     df, _, _ = load_sheet_data(sheet_name)
@@ -403,10 +400,10 @@ def regulation(sheet_name, item_index):
     defect = df.iloc[item_index][COL_DEFECT]
     reg_text = df.iloc[item_index][COL_REG]
 
-    # 🔥 圖片路徑（這段是重點）
+    # 🔥 圖片資料夾（重點）
     image_folder = os.path.join("static", "images", _sheet_dir(sheet_name), str(item_index))
 
-    # 🔥 DEBUG（你要看的）
+    # 🔥 DEBUG（看這兩行就好）
     print("DEBUG folder =", image_folder)
 
     if os.path.exists(image_folder):
@@ -425,9 +422,6 @@ def regulation(sheet_name, item_index):
         images=images,
         item_index=item_index
     )
-    df, actual_cols, row_ranges = load_sheet_data(sheet_name)
-    if df is None or item_index >= len(df):
-        return redirect(url_for("index"))
 
     # 手動上傳圖片
     if request.method == "POST":
