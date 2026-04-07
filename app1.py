@@ -237,8 +237,13 @@ def _convert_emf_to_png(emf_bytes):
 
 
 def _sheet_dir(sheet_name):
-    print("DEBUG sheet_name =", sheet_name)
-    return sheet_name
+    mapping = {
+        "電氣": "electric",
+        "排水": "drainage",
+        "給水": "water",
+        "弱電": "weak",
+    }
+    return mapping.get(sheet_name, sheet_name)
 
 
 def _img_folder(sheet_name, item_index):
@@ -391,37 +396,11 @@ def defects(sheet_name):
     return render_template("defects.html", sheet_name=sheet_name, items=items)
 
 
-@app.route("/system/<sheet_name>/defect/<int:item_index>")
+@app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
 def regulation(sheet_name, item_index):
-    df, _, _ = load_sheet_data(sheet_name)
-    if df is None:
+    df, actual_cols, row_ranges = load_sheet_data(sheet_name)
+    if df is None or item_index >= len(df):
         return redirect(url_for("index"))
-
-    defect = df.iloc[item_index][COL_DEFECT]
-    reg_text = df.iloc[item_index][COL_REG]
-
-    # 🔥 圖片資料夾（重點）
-    image_folder = os.path.join("static", "images", _sheet_dir(sheet_name), str(item_index))
-
-    # 🔥 DEBUG（看這兩行就好）
-    print("DEBUG folder =", image_folder)
-
-    if os.path.exists(image_folder):
-        images = os.listdir(image_folder)
-    else:
-        images = []
-
-    print("DEBUG images =", images)
-
-    return render_template(
-        "regulation.html",
-        sheet_name=sheet_name,
-        defect=defect,
-        reg_text=reg_text,
-        content_text="",
-        images=images,
-        item_index=item_index
-    )
 
     # 手動上傳圖片
     if request.method == "POST":
