@@ -7,7 +7,7 @@ import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 app.secret_key = "regulation-lookup-secret"
 
 BASE_DIR      = os.path.dirname(__file__)
