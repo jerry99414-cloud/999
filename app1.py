@@ -392,7 +392,39 @@ def defects(sheet_name):
 
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
+import os
+
+@app.route("/system/<sheet_name>/defect/<int:item_index>")
 def regulation(sheet_name, item_index):
+    df, _, _ = load_sheet_data(sheet_name)
+    if df is None:
+        return redirect(url_for("index"))
+
+    defect = df.iloc[item_index][COL_DEFECT]
+    reg_text = df.iloc[item_index][COL_REG]
+
+    # 🔥 圖片路徑（這段是重點）
+    image_folder = os.path.join("static", "images", _sheet_dir(sheet_name), str(item_index))
+
+    # 🔥 DEBUG（你要看的）
+    print("DEBUG folder =", image_folder)
+
+    if os.path.exists(image_folder):
+        images = os.listdir(image_folder)
+    else:
+        images = []
+
+    print("DEBUG images =", images)
+
+    return render_template(
+        "regulation.html",
+        sheet_name=sheet_name,
+        defect=defect,
+        reg_text=reg_text,
+        content_text="",
+        images=images,
+        item_index=item_index
+    )
     df, actual_cols, row_ranges = load_sheet_data(sheet_name)
     if df is None or item_index >= len(df):
         return redirect(url_for("index"))
