@@ -13,6 +13,7 @@ import re
 def safe_name(name):
     name = str(name).strip()
     name = re.sub(r"[^\w\u4e00-\u9fff]", "_", name)
+    name = re.sub(r"_+", "_", name)   # ⭐ 合併多個底線
     return name
 
 app = Flask(__name__, static_folder="static")
