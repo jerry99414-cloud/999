@@ -429,6 +429,7 @@ def regulation(sheet_name, item_index):
 
     # ✅ 用 defect 當資料夾名稱
     safe_defect = safe_name(defect)
+    print("DEBUG safe_defect =", safe_defect)
 
     folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), safe_defect)
     print("DEBUG folder =", folder)
