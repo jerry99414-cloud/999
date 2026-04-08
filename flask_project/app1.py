@@ -476,15 +476,16 @@ def regulation(sheet_name, item_index):
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
 
     return render_template(
-        "regulation.html",
-        sheet_name=sheet_name,
-        defect=defect,
-        reg_text=reg_text,
-        content_text=content_text,
-        images=images,
-        item_index=item_index,
-        col_warning=actual_cols
-    )
+    "regulation.html",
+    sheet_name=sheet_name,
+    defect=defect,
+    safe_defect=safe_defect,   # ⭐ 這行一定要加
+    reg_text=reg_text,
+    content_text=content_text,
+    images=images,
+    item_index=item_index,
+    col_warning=actual_cols
+)
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>/delete_image/<filename>")
 def delete_image(sheet_name, item_index, filename):
