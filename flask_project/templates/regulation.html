@@ -52,7 +52,7 @@
   <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;">
     {% for img in images %}
     <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
-      <img src="{{ url_for('static', filename='images/' ~ sheet_name ~ '/' ~ item_index ~ '/' ~ img) }}"
+      <img src="{{ url_for('static', filename='images/' ~ ('electric' if sheet_name == '電氣' else sheet_name) ~ '/' ~ item_index ~ '/' ~ img) }}"
            alt="法規圖片"
            style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
            onclick="window.open(this.src,'_blank')">
