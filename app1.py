@@ -7,6 +7,14 @@ import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from werkzeug.utils import secure_filename
 
+
+import re
+
+def safe_name(name):
+    name = str(name).strip()
+    name = re.sub(r"[^\w\u4e00-\u9fff]", "_", name)
+    return name
+
 app = Flask(__name__, static_folder="static")
 app.secret_key = "regulation-lookup-secret"
 
@@ -419,8 +427,9 @@ def regulation(sheet_name, item_index):
     print("DEBUG defect =", repr(defect))
 
     # ✅ 用 defect 當資料夾名稱
-    folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), defect)
+    safe_defect = safe_name(defect)
 
+    folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), safe_defect)
     print("DEBUG folder =", folder)
 
     # 讀圖片
