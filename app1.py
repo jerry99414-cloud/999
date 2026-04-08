@@ -432,7 +432,14 @@ def regulation(sheet_name, item_index):
     print("DEBUG safe_defect =", safe_defect)
 
     folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), safe_defect)
+
     print("DEBUG folder =", folder)
+
+# ⭐ 新增這行（關鍵）
+    if os.path.exists(folder):
+     print("FILES =", os.listdir(folder))
+    else:
+     print("FILES = NO FOLDER")
 
     # 讀圖片
     if os.path.exists(folder):
