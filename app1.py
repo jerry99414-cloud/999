@@ -429,17 +429,20 @@ def regulation(sheet_name, item_index):
     reg_text     = row[COL_REG]
     content_text = row[COL_CONTENT]
 
-    # 🔥 關鍵（debug圖片）
-    folder = _img_folder(sheet_name, item_index)
+    # ✅ 用 defect 名稱當資料夾
+    folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), defect)
 
-    print("DEBUG real folder =", folder)
+    print("DEBUG folder =", folder)
 
     if os.path.exists(folder):
-        images = os.listdir(folder)
+     images = [
+        f for f in os.listdir(folder)
+        if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+    ]
     else:
-        images = []
+     images = []
 
-    print("DEBUG real images =", images)
+    print("DEBUG images =", images)
 
     col_warning = actual_cols if (not reg_text and not content_text and not images) else None
 
