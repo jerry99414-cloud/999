@@ -408,43 +408,52 @@ def regulation(sheet_name, item_index):
     if df is None or item_index >= len(df):
         return redirect(url_for("index"))
 
-    # 🔥 上傳圖片（不要動）
+    # 取得資料
+    row = df.iloc[item_index]
+
+    # ✅ 關鍵修正：去掉空白 + 保證字串
+    defect = str(row[COL_DEFECT]).strip()
+    reg_text = row[COL_REG]
+    content_text = row[COL_CONTENT]
+
+    print("DEBUG defect =", repr(defect))
+
+    # ✅ 用 defect 當資料夾名稱
+    folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), defect)
+
+    print("DEBUG folder =", folder)
+
+    # 讀圖片
+    if os.path.exists(folder):
+        images = [
+            f for f in os.listdir(folder)
+            if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+        ]
+    else:
+        images = []
+
+    print("DEBUG images =", images)
+
+    # 手動上傳圖片（保留原本功能）
     if request.method == "POST":
         uploaded = request.files.getlist("images")
         count = 0
         for f in uploaded:
             if f and f.filename and allowed_img(f.filename):
-                ext  = f.filename.rsplit(".", 1)[1].lower()
+                ext = f.filename.rsplit(".", 1)[1].lower()
                 name = hashlib.md5(f.read()).hexdigest()[:12] + "." + ext
                 f.seek(0)
-                f.save(os.path.join(_img_folder(sheet_name, item_index), name))
+
+                save_folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), defect)
+                os.makedirs(save_folder, exist_ok=True)
+
+                f.save(os.path.join(save_folder, name))
                 count += 1
+
         if count:
             flash(f"上傳了 {count} 張圖片")
+
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
-
-    # 🔥 資料
-    row          = df.iloc[item_index]
-    defect       = row[COL_DEFECT]
-    reg_text     = row[COL_REG]
-    content_text = row[COL_CONTENT]
-
-    # ✅ 用 defect 名稱當資料夾
-    folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), defect)
-
-    print("DEBUG folder =", folder)
-
-    if os.path.exists(folder):
-     images = [
-        f for f in os.listdir(folder)
-        if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
-    ]
-    else:
-     images = []
-
-    print("DEBUG images =", images)
-
-    col_warning = actual_cols if (not reg_text and not content_text and not images) else None
 
     return render_template(
         "regulation.html",
@@ -454,9 +463,8 @@ def regulation(sheet_name, item_index):
         content_text=content_text,
         images=images,
         item_index=item_index,
-        col_warning=col_warning,
+        col_warning=actual_cols
     )
-
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>/delete_image/<filename>")
 def delete_image(sheet_name, item_index, filename):
