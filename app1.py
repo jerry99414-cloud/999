@@ -444,7 +444,9 @@ def regulation(sheet_name, item_index):
                 name = hashlib.md5(f.read()).hexdigest()[:12] + "." + ext
                 f.seek(0)
 
-                save_folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), defect)
+                safe_defect = safe_name(defect)
+
+                save_folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), safe_defect)
                 os.makedirs(save_folder, exist_ok=True)
 
                 f.save(os.path.join(save_folder, name))
