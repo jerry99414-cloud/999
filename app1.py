@@ -253,9 +253,15 @@ def _img_folder(sheet_name, item_index):
 
 
 def list_images(sheet_name, item_index):
-    folder = _img_folder(sheet_name, item_index)
-    return sorted([f for f in os.listdir(folder) if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG])
+    folder = os.path.join(STATIC_IMG, _sheet_dir(sheet_name), str(item_index))
 
+    if not os.path.exists(folder):
+        return []
+
+    return sorted([
+        f for f in os.listdir(folder)
+        if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+    ])
 
 # ─── data loading ─────────────────────────────────────────────────────────────
 
