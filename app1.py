@@ -402,7 +402,7 @@ def regulation(sheet_name, item_index):
     if df is None or item_index >= len(df):
         return redirect(url_for("index"))
 
-    # 手動上傳圖片
+    # 🔥 上傳圖片（不要動）
     if request.method == "POST":
         uploaded = request.files.getlist("images")
         count = 0
@@ -417,15 +417,25 @@ def regulation(sheet_name, item_index):
             flash(f"上傳了 {count} 張圖片")
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
 
-    # 從 Excel 提取圖片（只提取這個工作表一次）
-    #extract_and_cache_images(sheet_name, row_ranges)
-
+    # 🔥 資料
     row          = df.iloc[item_index]
     defect       = row[COL_DEFECT]
     reg_text     = row[COL_REG]
     content_text = row[COL_CONTENT]
-    images       = list_images(sheet_name, item_index)
-    col_warning  = actual_cols if (not reg_text and not content_text and not images) else None
+
+    # 🔥 關鍵（debug圖片）
+    folder = _img_folder(sheet_name, item_index)
+
+    print("DEBUG real folder =", folder)
+
+    if os.path.exists(folder):
+        images = os.listdir(folder)
+    else:
+        images = []
+
+    print("DEBUG real images =", images)
+
+    col_warning = actual_cols if (not reg_text and not content_text and not images) else None
 
     return render_template(
         "regulation.html",
