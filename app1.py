@@ -15,7 +15,7 @@ SYSTEM_MAP = {
     "給水": "water_supply",
     "電梯": "elevator",
     "高層建築": "high_rise",
-    "弱電": "low voltage",
+    "弱電": "low_voltage",
     "發電機": "generator",
     "太陽能": "solar",
 }
@@ -259,7 +259,7 @@ def _sheet_dir(sheet_name):
         "電氣": "electric",
         "排水": "drainage",
         "給水": "water",
-        "弱電": "weak",
+        "弱電": "low volotage",
     }
     return mapping.get(sheet_name, sheet_name)
 
