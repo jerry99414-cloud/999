@@ -53,10 +53,10 @@
   {% for img in images %}
   <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
     
-    <img src="{{ url_for('static', filename='images/' ~ ('electric' if sheet_name == '電氣' else sheet_name) ~ '/' ~ safe_defect ~ '/' ~ img) }}"
-         alt="法規圖片"
-         style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
-         onclick="window.open(this.src,'_blank')">
+    <img src="{{ url_for('static', filename='images/' ~ system_en ~ '/' ~ safe_defect ~ '/' ~ img) }}"
+     alt="法規圖片"
+     style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
+     onclick="window.open(this.src,'_blank')">
 
     <a href="{{ url_for('delete_image', sheet_name=sheet_name, item_index=item_index, filename=img) }}"
        style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;text-decoration:none;"
