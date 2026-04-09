@@ -15,7 +15,7 @@ SYSTEM_MAP = {
     "給水": "water_supply",
     "電梯": "elevator",
     "高層建築": "high_rise",
-    "弱電": "low_voltage",
+    "弱電": "low voltage",
     "發電機": "generator",
     "太陽能": "solar",
 }
