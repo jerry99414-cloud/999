@@ -393,6 +393,8 @@ def index():
 
 @app.route("/system/<path:sheet_name>")
 def defects(sheet_name):
+    sheet_name = sheet_name.strip()   # ⭐⭐⭐ 加這行
+
     df, _, _ = load_sheet_data(sheet_name)
     if df is None:
         return redirect(url_for("index"))
