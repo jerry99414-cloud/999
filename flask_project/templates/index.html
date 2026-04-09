@@ -14,16 +14,14 @@
         請選擇要查詢的系統
       </p>
 
-      <form onchange="if(this.system.value) location=this.system.value;">
-        <select name="system" style="padding:10px;border-radius:10px;width:100%;">
-          <option value="">請選擇系統</option>
-          {% for sheet in sheets %}
-            <option value="{{ url_for('defects', sheet_name=sheet.strip()) }}">
-  {{ sheet.strip() }}
-</option>
-          {% endfor %}
-        </select>
-      </form>
+      <form onchange="if(this.system.value) location='/system/' + this.system.value;">
+  <select name="system" style="padding:10px;border-radius:10px;width:100%;">
+    <option value="">請選擇系統</option>
+    {% for sheet in sheets %}
+      <option value="{{ sheet.strip() }}">{{ sheet.strip() }}</option>
+    {% endfor %}
+  </select>
+</form>
     </div>
 
     <!-- 🔹 上傳區 -->
