@@ -429,7 +429,17 @@ def defects(sheet_name):
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
 def regulation(sheet_name, item_index):
     sheet_name = sheet_name.strip()
-    df, actual_cols, row_ranges = load_sheet_data(sheet_name)
+
+    sheets, _ = load_sheets()
+
+    # ⭐ 找真正的 sheet（關鍵）
+    real_sheet = next((s for s in sheets if s.strip() == sheet_name), None)
+
+    if real_sheet is None:
+        return redirect(url_for("index"))
+
+    df, actual_cols, row_ranges = load_sheet_data(real_sheet)
+
     if df is None or item_index >= len(df):
         return redirect(url_for("index"))
 
