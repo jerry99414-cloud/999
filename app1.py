@@ -259,7 +259,7 @@ def _sheet_dir(sheet_name):
         "電氣": "electric",
         "排水": "drainage",
         "給水": "water",
-        "弱電": "low volotage",
+        "弱電": "low_voltage",
     }
     return mapping.get(sheet_name, sheet_name)
 
