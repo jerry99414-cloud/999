@@ -9,7 +9,16 @@ from werkzeug.utils import secure_filename
 
 
 import re
-
+SYSTEM_MAP = {
+    "電氣": "electric",
+    "排水": "drainage",
+    "給水": "water_supply",
+    "電梯": "elevator",
+    "高層建築": "high_rise",
+    "弱電": "low_voltage",
+    "發電機": "generator",
+    "太陽能": "solar",
+}
 def safe_name(name):
     name = str(name).strip()
     name = re.sub(r"[^\w\u4e00-\u9fff]", "_", name)
@@ -431,7 +440,9 @@ def regulation(sheet_name, item_index):
     safe_defect = safe_name(defect)
     print("DEBUG safe_defect =", safe_defect)
 
-    folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), safe_defect)
+    system_en = SYSTEM_MAP.get(sheet_name, sheet_name)
+
+    folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
 
     print("DEBUG folder =", folder)
 
@@ -476,15 +487,17 @@ def regulation(sheet_name, item_index):
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
 
     return render_template(
-        "regulation.html",
-        sheet_name=sheet_name,
-        defect=defect,
-        reg_text=reg_text,
-        content_text=content_text,
-        images=images,
-        item_index=item_index,
-        col_warning=actual_cols
-    )
+    "regulation.html",
+    sheet_name=sheet_name,
+    system_en=system_en,      # ⭐ 新增這行
+    defect=defect,
+    safe_defect=safe_defect,
+    reg_text=reg_text,
+    content_text=content_text,
+    images=images,
+    item_index=item_index,
+    col_warning=actual_cols
+)
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>/delete_image/<filename>")
 def delete_image(sheet_name, item_index, filename):
