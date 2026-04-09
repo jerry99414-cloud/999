@@ -393,28 +393,32 @@ def index():
 
 @app.route("/system/<path:sheet_name>")
 def defects(sheet_name):
-    sheet_name = sheet_name.strip()   # ⭐⭐⭐ 加這行
+    sheet_name = sheet_name.strip()   # ⭐⭐⭐ 必加
 
-    df, _, _ = load_sheet_data(sheet_name)
+    sheets, _ = load_sheets()
+
+    # ⭐ 找真正的 sheet（防 Excel / URL 不一致）
+    real_sheet = next((s for s in sheets if s.strip() == sheet_name), None)
+
+    if real_sheet is None:
+        return redirect(url_for("index"))
+
+    df, _, _ = load_sheet_data(real_sheet)
     if df is None:
         return redirect(url_for("index"))
 
-    # ===== Excel資料 =====
     excel_items = df[COL_DEFECT].tolist()
 
-    # ===== JSON新增資料 =====
     data = load_json()
-    extra = data.get(sheet_name, [])
+    extra = data.get(real_sheet, [])
 
-    # ===== 合併（新增放前面）=====
     items = []
-
     for item in extra:
         items.append("🆕 " + item["缺失項目"])
 
     items += excel_items
 
-    return render_template("defects.html", sheet_name=sheet_name, items=items)
+    return render_template("defects.html", sheet_name=real_sheet, items=items)
     df, _, _ = load_sheet_data(sheet_name)
     if df is None:
         return redirect(url_for("index"))
