@@ -422,6 +422,7 @@ def defects(sheet_name):
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
 def regulation(sheet_name, item_index):
+    sheet_name = sheet_name.strip()
     df, actual_cols, row_ranges = load_sheet_data(sheet_name)
     if df is None or item_index >= len(df):
         return redirect(url_for("index"))
