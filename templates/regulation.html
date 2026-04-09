@@ -48,24 +48,26 @@
   <!-- 圖片區 -->
   <p style="font-size:0.82rem;color:#718096;margin:22px 0 10px;">🖼 相關圖片</p>
 
-  {% if images %}
-  <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;">
-    {% for img in images %}
-    <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
-      <img src="{{ url_for('serve_image', sheet_name=sheet_name, item_index=item_index, filename=img) }}"
-           alt="法規圖片"
-           style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
-           onclick="window.open(this.src,'_blank')">
-      <a href="{{ url_for('delete_image', sheet_name=sheet_name, item_index=item_index, filename=img) }}"
-         style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;text-decoration:none;"
-         onclick="return confirm('確認刪除此圖片？')">✕</a>
-    </div>
-    {% endfor %}
+{% if images %}
+<div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;">
+  {% for img in images %}
+  <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+    
+    <img src="{{ url_for('static', filename='images/' ~ system_en ~ '/' ~ safe_defect ~ '/' ~ img) }}"
+     alt="法規圖片"
+     style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
+     onclick="window.open(this.src,'_blank')">
+
+    <a href="{{ url_for('delete_image', sheet_name=sheet_name, item_index=item_index, filename=img) }}"
+       style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;text-decoration:none;"
+       onclick="return confirm('確認刪除此圖片？')">✕</a>
+
   </div>
-  <p style="font-size:0.78rem;color:#a0aec0;margin-bottom:18px;">點擊圖片在新分頁中開啟全尺寸，點 ✕ 可刪除</p>
-  {% else %}
-  <p style="color:#a0aec0;font-size:0.88rem;margin-bottom:14px;">尚無圖片</p>
-  {% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<p style="color:#a0aec0;font-size:0.88rem;margin-bottom:14px;">尚無圖片</p>
+{% endif %}
 
   <!-- 圖片上傳 -->
   <form method="POST" enctype="multipart/form-data"
