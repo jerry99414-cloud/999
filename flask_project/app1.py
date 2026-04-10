@@ -378,8 +378,8 @@ def index():
                 os.remove(os.path.join(UPLOAD_FOLDER, old))
             # 清除圖片快取
             import shutil
-            if os.path.exists(STATIC_IMG):
-                shutil.rmtree(STATIC_IMG)
+            #if os.path.exists(STATIC_IMG):
+                #shutil.rmtree(STATIC_IMG)
             os.makedirs(STATIC_IMG, exist_ok=True)
             f.save(EXCEL_FILE)
             flash("檔案上傳成功！")
