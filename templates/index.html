@@ -22,10 +22,12 @@
     <!-- 📘 法規查詢 -->
     <optgroup label="📘 法規查詢">
       {% for sheet in sheets %}
-        <option value="{{ url_for('defects', sheet_name=sheet) }}">
-          {{ sheet }}
-        </option>
-      {% endfor %}
+  {% if sheet.strip() != "文件清冊" %}
+    <option value="{{ url_for('defects', sheet_name=sheet) }}">
+      {{ sheet }}
+    </option>
+  {% endif %}
+{% endfor %}
     </optgroup>
 
     <!-- 📄 文件清冊 -->
