@@ -19,12 +19,10 @@ SYSTEM_MAP = {
     "發電機": "generator",
     "太陽能": "solar",
 }
-def safe_name(name):
-    name = str(name).strip()
-    name = re.sub(r"[^\w\u4e00-\u9fff]", "_", name)
-    name = re.sub(r"_+", "_", name)   # ⭐ 合併多個底線
-    return name
 
+def safe_name(name):
+    name = name.strip()
+    return re.sub(r"[^\u4e00-\u9fa5a-zA-Z0-9]", "", name)
 app = Flask(__name__, static_folder="static")
 app.secret_key = "regulation-lookup-secret"
 
@@ -620,6 +618,9 @@ def document_detail(item_index):
     else:
         images = []
 
-    return render_template("document_detail.html",
-                           problem=problem,
-                           images=images)
+    return render_template(
+    "document_detail.html",
+    problem=problem,
+    safe_problem=safe_problem,
+    images=images
+)
