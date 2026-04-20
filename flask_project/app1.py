@@ -30,7 +30,7 @@ BASE_DIR      = os.path.dirname(__file__)
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 STATIC_IMG    = os.path.join(BASE_DIR, "static", "images")
 ALLOWED_EXCEL = {"xlsx", "xls"}
-ALLOWED_IMG   = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_IMG   = {"png", "jpg", "jpeg", "gif", "webp","pdf"}
 EXCEL_FILE    = os.path.join(UPLOAD_FOLDER, "data.xlsx")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
