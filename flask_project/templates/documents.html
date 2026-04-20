@@ -1,21 +1,11 @@
 <h2>文件清冊</h2>
 
-<table border="1">
-    <tr>
-        <th>分項</th>
-        <th>問題</th>
-        <th>範例</th>
-        <th>操作</th>
-    </tr>
-
-    {% for item in items %}
-    <tr>
-        <td>{{ item["分項"] }}</td>
-        <td>{{ item["問題"] }}</td>
-        <td>{{ item["範例"] }}</td>
-        <td>
-            <a href="/documents/{{ loop.index0 }}">查看</a>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+<ul>
+{% for item in items %}
+    <li>
+        <a href="/documents/{{ loop.index0 }}">
+            {{ item["問題"] }}
+        </a>
+    </li>
+{% endfor %}
+</ul>
