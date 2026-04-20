@@ -18,6 +18,7 @@ SYSTEM_MAP = {
     "弱電": "low_voltage",
     "發電機": "generator",
     "太陽能": "solar",
+    "文件清冊": "documents",
 }
 
 def safe_name(name):
