@@ -468,11 +468,17 @@ def regulation(sheet_name, item_index):
             images = []
 
         return render_template(
-            "document_detail.html",
-            problem=problem,
-            safe_problem=safe_problem,
-            images=images
-        )
+    "regulation.html",   # ⭐ 改這裡
+    sheet_name=real_sheet,
+    system_en="documents",
+    defect=problem,
+    safe_defect=safe_problem,
+    reg_text="",          # 文件清冊沒有法規
+    content_text="",      # 沒內容
+    images=images,
+    item_index=item_index,
+    col_warning=[]
+)
 
     # =========================
     # ⭐ 原本法規（不要動）
