@@ -575,7 +575,17 @@ def add_defect(sheet_name):
     return render_template("add_defect.html", sheet_name=sheet_name)
 @app.route("/documents")
 def documents():
-    df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
+    xls = pd.ExcelFile(EXCEL_FILE)
+
+    # 把 sheet 名稱全部 strip
+    sheet_map = {s.strip(): s for s in xls.sheet_names}
+
+    if "文件清冊" not in sheet_map:
+        return f"找不到文件清冊，目前有：{xls.sheet_names}"
+
+    real_sheet = sheet_map["文件清冊"]
+
+    df = pd.read_excel(EXCEL_FILE, sheet_name=real_sheet)
 
     items = df.to_dict(orient="records")
 
@@ -583,7 +593,16 @@ def documents():
 
 @app.route("/documents/<int:item_index>")
 def document_detail(item_index):
-    df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
+    xls = pd.ExcelFile(EXCEL_FILE)
+
+    sheet_map = {s.strip(): s for s in xls.sheet_names}
+
+    if "文件清冊" not in sheet_map:
+        return "找不到文件清冊"
+
+    real_sheet = sheet_map["文件清冊"]
+
+    df = pd.read_excel(EXCEL_FILE, sheet_name=real_sheet)
 
     row = df.iloc[item_index]
 
