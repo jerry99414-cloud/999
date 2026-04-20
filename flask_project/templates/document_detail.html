@@ -1,5 +1,24 @@
 <h2>{{ problem }}</h2>
 
-{% for img in images %}
-    <img src="{{ url_for('static', filename='images/documents/' + safe_problem + '/' + img) }}">
-{% endfor %}
+{% if images %}
+    {% for file in images %}
+
+        {% if file.endswith('.pdf') %}
+            <!-- PDF -->
+            <iframe 
+                src="{{ url_for('static', filename='images/documents/' + safe_problem + '/' + file) }}" 
+                width="100%" 
+                height="500px">
+            </iframe>
+
+        {% else %}
+            <!-- 圖片 -->
+            <img 
+                src="{{ url_for('static', filename='images/documents/' + safe_problem + '/' + file) }}" 
+                width="300">
+        {% endif %}
+
+    {% endfor %}
+{% else %}
+    <p>尚無檔案</p>
+{% endif %}
