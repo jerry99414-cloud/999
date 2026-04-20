@@ -368,30 +368,14 @@ def load_sheet_data(sheet_name):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == "POST":
-        f = request.files.get("file")
-        if not f or f.filename == "":
-            flash("請選擇檔案")
-        elif allowed_excel(f.filename):
-            for old in os.listdir(UPLOAD_FOLDER):
-                os.remove(os.path.join(UPLOAD_FOLDER, old))
-            # 清除圖片快取
-            import shutil
-            #if os.path.exists(STATIC_IMG):
-                #shutil.rmtree(STATIC_IMG)
-            os.makedirs(STATIC_IMG, exist_ok=True)
-            f.save(EXCEL_FILE)
-            flash("檔案上傳成功！")
-        else:
-            flash("僅支援 .xlsx 或 .xls 格式")
-        return redirect(url_for("index"))
+    sheets = load_sheets()
 
-    sheets, error = load_sheets()
+    # ⭐ DEBUG：看程式讀到哪些 sheet（很重要）
+    print("========== DEBUG ==========")
+    print("SHEETS =", sheets)
+    print("===========================")
 
-    if sheets:
-       sheets, error = load_sheets()
-    return render_template("index.html", sheets=sheets, error=error)
-
+    return render_template("index.html", sheets=sheets)
 
 @app.route("/system/<path:sheet_name>")
 def defects(sheet_name):
