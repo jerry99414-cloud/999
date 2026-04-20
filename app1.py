@@ -455,13 +455,27 @@ def regulation(sheet_name, item_index):
 
     # ✅ 用 defect 當資料夾名稱
     safe_defect = safe_name(defect)
-    print("DEBUG safe_defect =", safe_defect)
-
     system_en = SYSTEM_MAP.get(sheet_name, sheet_name)
 
-    folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
+    base_path = os.path.join(app.static_folder, "images", system_en)
 
-    print("DEBUG folder =", folder)
+    folder = None
+
+    if os.path.exists(base_path):
+        for f in os.listdir(base_path):
+            # 去掉前面數字 + _
+            clean_f = re.sub(r'^\d+_', '', f)
+
+            if clean_f == safe_defect:
+                folder = os.path.join(base_path, f)
+                break
+
+    # 如果都找不到 → fallback（原本方式）
+    if folder is None:
+        folder = os.path.join(base_path, safe_defect)
+
+    print("DEBUG safe_defect =", safe_defect)
+    print("DEBUG matched folder =", folder)
 
 # ⭐ 新增這行（關鍵）
     if os.path.exists(folder):

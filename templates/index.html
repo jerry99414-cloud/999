@@ -15,15 +15,26 @@
       </p>
 
       <form onchange="if(this.system.value) location=this.system.value;">
-        <select name="system" style="padding:10px;border-radius:10px;width:100%;">
-          <option value="">請選擇系統</option>
-          {% for sheet in sheets %}
-            <option value="{{ url_for('defects', sheet_name=sheet) }}">
-              {{ sheet }}
-            </option>
-          {% endfor %}
-        </select>
-      </form>
+  <select name="system" style="padding:10px;border-radius:10px;width:100%;">
+
+    <option value="">請選擇功能</option>
+
+    <!-- 📘 法規查詢 -->
+    <optgroup label="📘 法規查詢">
+      {% for sheet in sheets %}
+        <option value="{{ url_for('defects', sheet_name=sheet) }}">
+          {{ sheet }}
+        </option>
+      {% endfor %}
+    </optgroup>
+
+    <!-- 📄 文件清冊 -->
+    <optgroup label="📄 文件">
+      <option value="/documents">文件清冊</option>
+    </optgroup>
+
+  </select>
+</form>
     </div>
 
     <!-- 🔹 上傳區 -->
