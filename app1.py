@@ -388,6 +388,9 @@ def index():
         return redirect(url_for("index"))
 
     sheets, error = load_sheets()
+
+    if sheets:
+       sheets = [s for s in sheets if s.strip() != "文件清冊"]
     return render_template("index.html", sheets=sheets, error=error)
 
 
@@ -455,27 +458,13 @@ def regulation(sheet_name, item_index):
 
     # ✅ 用 defect 當資料夾名稱
     safe_defect = safe_name(defect)
+    print("DEBUG safe_defect =", safe_defect)
+
     system_en = SYSTEM_MAP.get(sheet_name, sheet_name)
 
-    base_path = os.path.join(app.static_folder, "images", system_en)
+    folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
 
-    folder = None
-
-    if os.path.exists(base_path):
-        for f in os.listdir(base_path):
-            # 去掉前面數字 + _
-            clean_f = re.sub(r'^\d+_', '', f)
-
-            if clean_f == safe_defect:
-                folder = os.path.join(base_path, f)
-                break
-
-    # 如果都找不到 → fallback（原本方式）
-    if folder is None:
-        folder = os.path.join(base_path, safe_defect)
-
-    print("DEBUG safe_defect =", safe_defect)
-    print("DEBUG matched folder =", folder)
+    print("DEBUG folder =", folder)
 
 # ⭐ 新增這行（關鍵）
     if os.path.exists(folder):
@@ -584,3 +573,34 @@ def add_defect(sheet_name):
         return redirect(url_for("defects", sheet_name=sheet_name))
 
     return render_template("add_defect.html", sheet_name=sheet_name)
+@app.route("/documents")
+def documents():
+    df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
+
+    items = df.to_dict(orient="records")
+
+    return render_template("documents.html", items=items)
+
+@app.route("/documents/<int:item_index>")
+def document_detail(item_index):
+    df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
+
+    row = df.iloc[item_index]
+
+    problem = str(row["問題"]).strip()
+
+    safe_problem = safe_name(problem)
+
+    folder = os.path.join(app.static_folder, "images", "documents", safe_problem)
+
+    if os.path.exists(folder):
+        images = [
+            f for f in os.listdir(folder)
+            if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+        ]
+    else:
+        images = []
+
+    return render_template("document_detail.html",
+                           problem=problem,
+                           images=images)
