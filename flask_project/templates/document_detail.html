@@ -1,5 +1,5 @@
 <h2>{{ problem }}</h2>
 
 {% for img in images %}
-    <img src="{{ url_for('static', filename='images/documents/' + problem + '/' + img) }}" width="300">
+    <img src="{{ url_for('static', filename='images/documents/' + safe_problem + '/' + img) }}">
 {% endfor %}
