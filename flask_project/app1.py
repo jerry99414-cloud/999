@@ -388,6 +388,9 @@ def index():
         return redirect(url_for("index"))
 
     sheets, error = load_sheets()
+
+    if sheets:
+       sheets = [s for s in sheets if s.strip() != "文件清冊"]
     return render_template("index.html", sheets=sheets, error=error)
 
 
@@ -570,3 +573,34 @@ def add_defect(sheet_name):
         return redirect(url_for("defects", sheet_name=sheet_name))
 
     return render_template("add_defect.html", sheet_name=sheet_name)
+@app.route("/documents")
+def documents():
+    df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
+
+    items = df.to_dict(orient="records")
+
+    return render_template("documents.html", items=items)
+
+@app.route("/documents/<int:item_index>")
+def document_detail(item_index):
+    df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
+
+    row = df.iloc[item_index]
+
+    problem = str(row["問題"]).strip()
+
+    safe_problem = safe_name(problem)
+
+    folder = os.path.join(app.static_folder, "images", "documents", safe_problem)
+
+    if os.path.exists(folder):
+        images = [
+            f for f in os.listdir(folder)
+            if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+        ]
+    else:
+        images = []
+
+    return render_template("document_detail.html",
+                           problem=problem,
+                           images=images)
