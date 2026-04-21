@@ -472,10 +472,15 @@ def regulation(sheet_name, item_index):
 
     # ===== 以下都不用動 =====
     safe_defect = safe_name(defect)
+    
     system_en = SYSTEM_MAP.get(real_sheet, real_sheet)
 
     folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
+    safe_defect = safe_name(defect)
 
+# ⭐ 加在這裡（直接貼）
+    print("DEBUG defect =", repr(defect))
+    print("DEBUG safe_defect =", repr(safe_defect))
     if os.path.exists(folder):
         images = [
             f for f in os.listdir(folder)
@@ -518,6 +523,8 @@ def regulation(sheet_name, item_index):
         item_index=item_index,
         col_warning=actual_cols
     )
+
+
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>/delete_image/<filename>")
 def delete_image(sheet_name, item_index, filename):
