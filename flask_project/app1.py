@@ -443,7 +443,7 @@ def regulation(sheet_name, item_index):
     if real_sheet is None:
         return redirect(url_for("index"))
 
-    # ⭐ 文件清冊分流（關鍵）
+    # ⭐ 文件清冊分流
     if real_sheet == "文件清冊":
         df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
         df = df.fillna("")
@@ -470,26 +470,47 @@ def regulation(sheet_name, item_index):
         reg_text = row[COL_REG]
         content_text = row[COL_CONTENT]
 
-    # ===== 以下都不用動 =====
+    # ===== 路徑處理 =====
     safe_defect = safe_name(defect)
-    
     system_en = SYSTEM_MAP.get(real_sheet, real_sheet)
 
-    folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
-    safe_defect = safe_name(defect)
+    base_path = os.path.join(app.static_folder, "images", system_en)
 
-# ⭐ 加在這裡（直接貼）
-    print("DEBUG defect =", repr(defect))
-    print("DEBUG safe_defect =", repr(safe_defect))
+    # ⭐ 多名稱容錯（解決 _ / 空白 / 無符號）
+    candidates = [
+        safe_defect,
+        safe_defect.replace("_", ""),
+        safe_defect.replace("_", " "),
+    ]
+
+    folder = None
+    for c in candidates:
+        test_path = os.path.join(base_path, c)
+        if os.path.exists(test_path):
+            folder = test_path
+            break
+
+    if folder is None:
+        folder = os.path.join(base_path, safe_defect)
+
+    # ===== 抓圖片 + PDF =====
     if os.path.exists(folder):
+        files = os.listdir(folder)
+
         images = [
-            f for f in os.listdir(folder)
+            f for f in files
             if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+        ]
+
+        pdfs = [
+            f for f in files
+            if f.lower().endswith(".pdf")
         ]
     else:
         images = []
+        pdfs = []
 
-    # 上傳圖片
+    # ===== 上傳圖片 =====
     if request.method == "POST":
         uploaded = request.files.getlist("images")
         count = 0
@@ -500,7 +521,7 @@ def regulation(sheet_name, item_index):
                 name = hashlib.md5(f.read()).hexdigest()[:12] + "." + ext
                 f.seek(0)
 
-                save_folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
+                save_folder = os.path.join(base_path, safe_defect)
                 os.makedirs(save_folder, exist_ok=True)
 
                 f.save(os.path.join(save_folder, name))
@@ -511,6 +532,7 @@ def regulation(sheet_name, item_index):
 
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
 
+    # ===== 回傳 =====
     return render_template(
         "regulation.html",
         sheet_name=real_sheet,
@@ -520,10 +542,10 @@ def regulation(sheet_name, item_index):
         reg_text=reg_text,
         content_text=content_text,
         images=images,
+        pdfs=pdfs,   # ⭐ 新增
         item_index=item_index,
         col_warning=actual_cols
     )
-
 
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>/delete_image/<filename>")
