@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ defect }} — 法規查詢系統{% endblock %}
+{% block title %}檢視 — {{ defect }} — 法規查詢系統{% endblock %}
 
 {% block breadcrumb %}
 <div class="breadcrumb">
@@ -8,79 +8,98 @@
   <span>›</span>
   <a href="{{ url_for('defects', sheet_name=sheet_name) }}">{{ sheet_name }}</a>
   <span>›</span>
-  <strong>詳細內容</strong>
+  <strong>檢視</strong>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="card">
+
   <h2>
     <span class="section-tag">{{ sheet_name }}</span>
-    {% if sheet_name == "文件清冊" %}
-      文件內容
-    {% else %}
-      法源依據
-    {% endif %}
+    檢視
   </h2>
 
-  <!-- 標題 -->
-  <p style="font-size:0.82rem;color:#718096;margin-bottom:8px;">
-    {% if sheet_name == "文件清冊" %}
-      問題
-    {% else %}
-      缺失項目
-    {% endif %}
-  </p>
+  <!-- 缺失項目 -->
+  <p style="font-size:0.82rem;color:#718096;margin-bottom:8px;">缺失項目</p>
   <div class="defect-label">{{ defect }}</div>
 
-  <!-- 中間內容 -->
-  {% if reg_text %}
-  <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">
-    {% if sheet_name == "文件清冊" %}
-      📄 範例
-    {% else %}
-      ⚖ 法源依據
+  <!-- ===== 非文件清冊才顯示法規 ===== -->
+  {% if sheet_name != "文件清冊" %}
+
+    {% if reg_text %}
+    <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">⚖ 法源依據</p>
+    <div class="reg-box">{{ reg_text }}</div>
     {% endif %}
-  </p>
-  <div class="reg-box">{{ reg_text }}</div>
+
+    {% if content_text %}
+    <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 法規內容</p>
+    <div class="reg-box" style="background:#f0f4ff;border-color:#90b8f8;color:#2c3e7a;white-space:pre-wrap;">
+      {{ content_text }}
+    </div>
+    {% endif %}
+
+    {% if not reg_text and not content_text and not images and not pdfs %}
+    <div class="reg-box reg-empty">此缺失項目尚無資料。</div>
+    {% endif %}
+
   {% endif %}
 
-  <!-- 法規內容（只有法規用） -->
-  {% if sheet_name != "文件清冊" and content_text %}
-  <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 法規內容</p>
-  <div class="reg-box" style="background:#f0f4ff;border-color:#90b8f8;color:#2c3e7a;white-space:pre-wrap;">
-    {{ content_text }}
-  </div>
-  {% endif %}
-
-  <!-- 圖片 -->
+  <!-- ===== 圖片 ===== -->
   <p style="font-size:0.82rem;color:#718096;margin:22px 0 10px;">🖼 相關圖片</p>
 
   {% if images %}
   <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;">
     {% for img in images %}
-    <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;">
+    <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+      
       <img src="{{ url_for('static', filename='images/' ~ system_en ~ '/' ~ safe_defect ~ '/' ~ img) }}"
-           style="max-width:420px;max-height:380px;cursor:pointer;"
+           style="max-width:420px;max-height:380px;cursor:zoom-in;"
            onclick="window.open(this.src,'_blank')">
 
       <a href="{{ url_for('delete_image', sheet_name=sheet_name, item_index=item_index, filename=img) }}"
-         style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);color:white;border-radius:50%;padding:2px 6px;text-decoration:none;"
-         onclick="return confirm('刪除圖片？')">✕</a>
+         style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;text-decoration:none;"
+         onclick="return confirm('確認刪除？')">✕</a>
+
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <p style="color:#aaa;">尚無圖片</p>
+  <p style="color:#a0aec0;">尚無圖片</p>
   {% endif %}
 
-  <!-- 上傳 -->
-  <form method="POST" enctype="multipart/form-data">
+  <!-- ===== PDF 預覽 ===== -->
+  {% if pdfs %}
+  <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 PDF預覽</p>
+
+  {% for pdf in pdfs %}
+  <iframe src="{{ url_for('static', filename='images/' ~ system_en ~ '/' ~ safe_defect ~ '/' ~ pdf) }}"
+          width="100%"
+          height="500px"
+          style="border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+  </iframe>
+  {% endfor %}
+  {% endif %}
+
+  <!-- ===== 上傳 ===== -->
+  <form method="POST" enctype="multipart/form-data"
+        style="background:#f7fafc;border:1px dashed #cbd5e0;border-radius:8px;padding:14px;margin-top:10px;">
+
+    <p style="font-size:0.85rem;font-weight:600;">上傳圖片</p>
+
     <input type="file" name="images" multiple>
-    <button type="submit">上傳</button>
+    <button type="submit" style="background:#2b6cb0;color:#fff;border:none;padding:6px 16px;border-radius:6px;margin-left:8px;">
+      上傳
+    </button>
+
+    <p style="font-size:0.78rem;color:#a0aec0;">支援 PNG / JPG / GIF</p>
   </form>
 
-  <br>
-  <a href="{{ url_for('defects', sheet_name=sheet_name) }}">← 返回</a>
+  <!-- ===== 返回 ===== -->
+  <div style="margin-top:20px;">
+    <a class="back-btn" href="{{ url_for('defects', sheet_name=sheet_name) }}">← 返回</a>
+    <a class="back-btn" href="{{ url_for('index') }}">🏠 首頁</a>
+  </div>
+
 </div>
 {% endblock %}
