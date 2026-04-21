@@ -400,24 +400,26 @@ def index():
 
 @app.route("/system/<path:sheet_name>")
 def defects(sheet_name):
-    sheet_name = sheet_name.strip()   # ⭐⭐⭐ 必加
+    sheet_name = sheet_name.strip()
 
     sheets, _ = load_sheets()
 
-    # ⭐ 找真正的 sheet（防 Excel / URL 不一致）
+    # 找真正的 sheet
     real_sheet = next((s for s in sheets if s.strip() == sheet_name), None)
 
     if real_sheet is None:
         return redirect(url_for("index"))
 
-    df, _, _ = load_sheet_data(real_sheet)
-    if df is None:
-        return redirect(url_for("index"))
-
+    # ⭐⭐⭐ 文件清冊先處理（不要進 load_sheet_data）
     if real_sheet == "文件清冊":
-     excel_items = df["問題"].tolist()
+        df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
+        df = df.fillna("")
+        excel_items = df["問題"].tolist()
     else:
-     excel_items = df[COL_DEFECT].tolist()
+        df, _, _ = load_sheet_data(real_sheet)
+        if df is None:
+            return redirect(url_for("index"))
+        excel_items = df[COL_DEFECT].tolist()
 
     data = load_json()
     extra = data.get(real_sheet, [])
@@ -429,62 +431,50 @@ def defects(sheet_name):
     items += excel_items
 
     return render_template("defects.html", sheet_name=real_sheet, items=items)
-    df, _, _ = load_sheet_data(sheet_name)
-    if df is None:
-        return redirect(url_for("index"))
-    items = df[COL_DEFECT].tolist()
-    return render_template("defects.html", sheet_name=sheet_name, items=items)
-
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
 def regulation(sheet_name, item_index):
     sheet_name = sheet_name.strip()
 
     sheets, _ = load_sheets()
-
-    # ⭐ 找真正的 sheet（關鍵）
     real_sheet = next((s for s in sheets if s.strip() == sheet_name), None)
 
     if real_sheet is None:
         return redirect(url_for("index"))
 
-    df, actual_cols, row_ranges = load_sheet_data(real_sheet)
-
-    if df is None or item_index >= len(df):
-        return redirect(url_for("index"))
-
-    # 取得資料
-    row = df.iloc[item_index]
-
-   # ⭐⭐⭐ 文件清冊分流（只加這段）
+    # ⭐ 文件清冊分流（關鍵）
     if real_sheet == "文件清冊":
-     defect = str(row["問題"]).strip()
-     reg_text = row["範例"] if "範例" in df.columns else ""
-     content_text = ""
+        df = pd.read_excel(EXCEL_FILE, sheet_name="文件清冊")
+        df = df.fillna("")
+
+        if item_index >= len(df):
+            return redirect(url_for("index"))
+
+        row = df.iloc[item_index]
+        actual_cols = list(df.columns)
+
+        defect = str(row["問題"]).strip()
+        reg_text = row["範例"] if "範例" in df.columns else ""
+        content_text = ""
+
     else:
-     defect = str(row[COL_DEFECT]).strip()
-     reg_text = row[COL_REG]
-     content_text = row[COL_CONTENT]
+        df, actual_cols, row_ranges = load_sheet_data(real_sheet)
 
-    print("DEBUG defect =", repr(defect))
+        if df is None or item_index >= len(df):
+            return redirect(url_for("index"))
 
-    # ✅ 用 defect 當資料夾名稱
+        row = df.iloc[item_index]
+
+        defect = str(row[COL_DEFECT]).strip()
+        reg_text = row[COL_REG]
+        content_text = row[COL_CONTENT]
+
+    # ===== 以下都不用動 =====
     safe_defect = safe_name(defect)
-    print("DEBUG safe_defect =", safe_defect)
-
-    system_en = SYSTEM_MAP.get(sheet_name, sheet_name)
+    system_en = SYSTEM_MAP.get(real_sheet, real_sheet)
 
     folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
 
-    print("DEBUG folder =", folder)
-
-# ⭐ 新增這行（關鍵）
-    if os.path.exists(folder):
-     print("FILES =", os.listdir(folder))
-    else:
-     print("FILES = NO FOLDER")
-
-    # 讀圖片
     if os.path.exists(folder):
         images = [
             f for f in os.listdir(folder)
@@ -493,21 +483,18 @@ def regulation(sheet_name, item_index):
     else:
         images = []
 
-    print("DEBUG images =", images)
-
-    # 手動上傳圖片（保留原本功能）
+    # 上傳圖片
     if request.method == "POST":
         uploaded = request.files.getlist("images")
         count = 0
+
         for f in uploaded:
             if f and f.filename and allowed_img(f.filename):
                 ext = f.filename.rsplit(".", 1)[1].lower()
                 name = hashlib.md5(f.read()).hexdigest()[:12] + "." + ext
                 f.seek(0)
 
-                safe_defect = safe_name(defect)
-
-                save_folder = os.path.join(app.static_folder, "images", _sheet_dir(sheet_name), safe_defect)
+                save_folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
                 os.makedirs(save_folder, exist_ok=True)
 
                 f.save(os.path.join(save_folder, name))
@@ -519,17 +506,17 @@ def regulation(sheet_name, item_index):
         return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
 
     return render_template(
-    "regulation.html",
-    sheet_name=sheet_name,
-    system_en=system_en,      # ⭐ 新增這行
-    defect=defect,
-    safe_defect=safe_defect,
-    reg_text=reg_text,
-    content_text=content_text,
-    images=images,
-    item_index=item_index,
-    col_warning=actual_cols
-)
+        "regulation.html",
+        sheet_name=real_sheet,
+        system_en=system_en,
+        defect=defect,
+        safe_defect=safe_defect,
+        reg_text=reg_text,
+        content_text=content_text,
+        images=images,
+        item_index=item_index,
+        col_warning=actual_cols
+    )
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>/delete_image/<filename>")
 def delete_image(sheet_name, item_index, filename):
