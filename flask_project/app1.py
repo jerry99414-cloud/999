@@ -323,7 +323,15 @@ def load_sheet_data(sheet_name):
             col_reg = find_col(raw.columns, COL_REG)
 
         if col_defect is None:
+    # ⭐ 文件清冊特殊處理
+         if sheet_name == "文件清冊":
+          col_defect = find_col(raw.columns, "問題")
+          col_reg = find_col(raw.columns, "範例")
+
+        if col_defect is None:
             return None, actual_cols, []
+        else:
+         return None, actual_cols, []
 
         records = []
         row_ranges = []
@@ -407,7 +415,10 @@ def defects(sheet_name):
     if df is None:
         return redirect(url_for("index"))
 
-    excel_items = df[COL_DEFECT].tolist()
+    if real_sheet == "文件清冊":
+     excel_items = df["問題"].tolist()
+    else:
+     excel_items = df[COL_DEFECT].tolist()
 
     data = load_json()
     extra = data.get(real_sheet, [])
