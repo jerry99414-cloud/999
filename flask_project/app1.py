@@ -329,6 +329,13 @@ def load_sheet_data(sheet_name):
           col_reg = find_col(raw.columns, "範例")
 
         if col_defect is None:
+    # ⭐⭐⭐ 文件清冊專用（關鍵）
+         if sheet_name.strip() == "文件清冊":
+          col_defect = find_col(raw.columns, "問題")
+          col_reg = find_col(raw.columns, "範例")
+
+        if col_defect is None:
+            print("❌ 文件清冊找不到『問題』欄位")
             return None, actual_cols, []
         else:
          return None, actual_cols, []
