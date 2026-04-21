@@ -489,6 +489,7 @@ def regulation(sheet_name, item_index):
         if os.path.exists(test_path):
             folder = test_path
             break
+    folder_name = os.path.basename(folder)
 
     if folder is None:
         folder = os.path.join(base_path, safe_defect)
@@ -534,18 +535,19 @@ def regulation(sheet_name, item_index):
 
     # ===== 回傳 =====
     return render_template(
-        "regulation.html",
-        sheet_name=real_sheet,
-        system_en=system_en,
-        defect=defect,
-        safe_defect=safe_defect,
-        reg_text=reg_text,
-        content_text=content_text,
-        images=images,
-        pdfs=pdfs,   # ⭐ 新增
-        item_index=item_index,
-        col_warning=actual_cols
-    )
+    "regulation.html",
+    sheet_name=real_sheet,
+    system_en=system_en,
+    defect=defect,
+    safe_defect=safe_defect,
+    folder_name=folder_name,   # ⭐ 新增這行
+    reg_text=reg_text,
+    content_text=content_text,
+    images=images,
+    pdfs=pdfs,
+    item_index=item_index,
+    col_warning=actual_cols
+)
 
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>/delete_image/<filename>")
