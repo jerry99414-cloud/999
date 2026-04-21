@@ -294,12 +294,10 @@ def load_sheets():
 
 
 def load_sheet_data(sheet_name):
-    path = get_excel_path()
-    if not path:
-        return None, [], []
-
     try:
-        # 第一次讀（自動判斷）
+        path = EXCEL_FILE
+
+        # 讀 Excel
         raw = pd.read_excel(path, sheet_name=sheet_name)
         raw = raw.fillna("")
         raw.columns = [str(c).strip() for c in raw.columns]
@@ -322,24 +320,17 @@ def load_sheet_data(sheet_name):
             col_defect = find_col(raw.columns, COL_DEFECT)
             col_reg = find_col(raw.columns, COL_REG)
 
-        if col_defect is None:
-    # ⭐ 文件清冊特殊處理
-         if sheet_name == "文件清冊":
-          col_defect = find_col(raw.columns, "問題")
-          col_reg = find_col(raw.columns, "範例")
+        # ⭐ 文件清冊特殊處理
+        if col_defect is None and sheet_name.strip() == "文件清冊":
+            col_defect = find_col(raw.columns, "問題")
+            col_reg = find_col(raw.columns, "範例")
 
+        # ❗最後檢查
         if col_defect is None:
-    # ⭐⭐⭐ 文件清冊專用（關鍵）
-         if sheet_name.strip() == "文件清冊":
-          col_defect = find_col(raw.columns, "問題")
-          col_reg = find_col(raw.columns, "範例")
-
-        if col_defect is None:
-            print("❌ 文件清冊找不到『問題』欄位")
+            print("❌ 找不到欄位:", raw.columns.tolist())
             return None, actual_cols, []
-        else:
-         return None, actual_cols, []
 
+        # ===== 解析資料 =====
         records = []
         row_ranges = []
         current = None
@@ -379,6 +370,7 @@ def load_sheet_data(sheet_name):
         return df, actual_cols, row_ranges
 
     except Exception as e:
+        print("❌ load_sheet_data error:", e)
         return None, [str(e)], []
 # ─── routes ───────────────────────────────────────────────────────────────────
 
