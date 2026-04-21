@@ -8,7 +8,7 @@
   <span>›</span>
   <a href="{{ url_for('defects', sheet_name=sheet_name) }}">{{ sheet_name }}</a>
   <span>›</span>
-  <strong>法源依據</strong>
+  <strong>{% if sheet_name != "文件清冊" %}法源依據{% else %}檢視{% endif %}</strong>
 </div>
 {% endblock %}
 
@@ -16,28 +16,22 @@
 <div class="card">
   <h2>
     <span class="section-tag">{{ sheet_name }}</span>
-    法源依據
+    {% if sheet_name != "文件清冊" %}法源依據{% else %}檢視{% endif %}
   </h2>
 
   <!-- 缺失項目 -->
   <p style="font-size:0.82rem;color:#718096;margin-bottom:8px;">缺失項目</p>
   <div class="defect-label">{{ defect }}</div>
 
-  <!-- ⭐⭐⭐ 文件清冊專用顯示 -->
-  {% if sheet_name == "文件清冊" %}
-    {% if reg_text %}
-    <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 範例</p>
-    <div class="reg-box">{{ reg_text }}</div>
-    {% endif %}
-  {% else %}
+  {% if sheet_name != "文件清冊" %}
 
-  <!-- 法源依據（短）-->
+  <!-- 法源依據 -->
   {% if reg_text %}
   <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">⚖ 法源依據</p>
   <div class="reg-box">{{ reg_text }}</div>
   {% endif %}
 
-  <!-- 法規內容（詳細）-->
+  <!-- 法規內容 -->
   {% if content_text %}
   <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 法規內容</p>
   <div class="reg-box" style="background:#f0f4ff;border-color:#90b8f8;color:#2c3e7a;white-space:pre-wrap;">
@@ -45,11 +39,11 @@
   </div>
   {% endif %}
 
-  {% endif %}
-
   <!-- 無資料提示 -->
   {% if not reg_text and not content_text and not images %}
   <div class="reg-box reg-empty">此缺失項目尚無資料。</div>
+  {% endif %}
+
   {% endif %}
 
   <!-- 圖片區 -->
@@ -61,7 +55,7 @@
   <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
     
     <img src="{{ url_for('static', filename='images/' ~ system_en ~ '/' ~ safe_defect ~ '/' ~ img) }}"
-         alt="法規圖片"
+         alt="圖片"
          style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
          onclick="window.open(this.src,'_blank')">
 
@@ -81,8 +75,7 @@
         style="background:#f7fafc;border:1px dashed #cbd5e0;border-radius:8px;padding:14px 18px;">
     <p style="font-size:0.85rem;font-weight:600;color:#4a5568;margin-bottom:8px;">上傳圖片</p>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <input type="file" name="images" accept="image/*" multiple
-             style="font-size:0.85rem;">
+      <input type="file" name="images" accept="image/*" multiple>
       <button type="submit"
               style="background:#2b6cb0;color:#fff;border:none;padding:7px 18px;border-radius:6px;font-size:0.88rem;cursor:pointer;font-weight:600;">
         上傳
