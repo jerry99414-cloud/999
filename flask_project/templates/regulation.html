@@ -34,9 +34,31 @@
 
     {% if content_text %}
     <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 法規內容</p>
-    <div class="reg-box" style="background:#f0f4ff;border-color:#90b8f8;color:#2c3e7a;white-space:pre-wrap;">
-      {{ content_text }}
+    <div class="reg-box" style="background:#f0f4ff;border-color:#90b8f8;color:#2c3e7a;">
+  
+  {% for line in content_text.split('\n') %}
+    <div style="display:flex; align-items:flex-start; margin-bottom:4px;">
+
+      <!-- 編號 -->
+      <div style="min-width:3em; font-weight:600;">
+        {% if ' ' in line %}
+          {{ line.split(' ')[0] }}
+        {% else %}
+          {{ line }}
+        {% endif %}
+      </div>
+
+      <!-- 內容 -->
+      <div style="flex:1;">
+        {% if ' ' in line %}
+          {{ line[line.find(' ')+1:] }}
+        {% endif %}
+      </div>
+
     </div>
+  {% endfor %}
+
+</div>
     {% endif %}
 
     {% if not reg_text and not content_text and not images and not pdfs %}
