@@ -23,6 +23,14 @@
   <p style="font-size:0.82rem;color:#718096;margin-bottom:8px;">缺失項目</p>
   <div class="defect-label">{{ defect }}</div>
 
+  <!-- ⭐⭐⭐ 文件清冊專用顯示 -->
+  {% if sheet_name == "文件清冊" %}
+    {% if reg_text %}
+    <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 範例</p>
+    <div class="reg-box">{{ reg_text }}</div>
+    {% endif %}
+  {% else %}
+
   <!-- 法源依據（短）-->
   {% if reg_text %}
   <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">⚖ 法源依據</p>
@@ -32,17 +40,16 @@
   <!-- 法規內容（詳細）-->
   {% if content_text %}
   <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 法規內容</p>
-  <div class="reg-box" style="background:#f0f4ff;border-color:#90b8f8;color:#2c3e7a;white-space:pre-wrap;">{{ content_text }}</div>
+  <div class="reg-box" style="background:#f0f4ff;border-color:#90b8f8;color:#2c3e7a;white-space:pre-wrap;">
+    {{ content_text }}
+  </div>
+  {% endif %}
+
   {% endif %}
 
   <!-- 無資料提示 -->
   {% if not reg_text and not content_text and not images %}
-  <div class="reg-box reg-empty">此缺失項目尚無法源依據資料。</div>
-  {% if col_warning %}
-  <div style="margin-top:12px;background:#fffbeb;border:1px solid #f6e05e;border-radius:6px;padding:12px 16px;font-size:0.82rem;color:#744210;">
-    <strong>⚠ 偵錯資訊：</strong>找到的欄位：<code style="background:#fef3c7;padding:2px 6px;">{{ col_warning | join("、") }}</code>
-  </div>
-  {% endif %}
+  <div class="reg-box reg-empty">此缺失項目尚無資料。</div>
   {% endif %}
 
   <!-- 圖片區 -->
@@ -54,9 +61,9 @@
   <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
     
     <img src="{{ url_for('static', filename='images/' ~ system_en ~ '/' ~ safe_defect ~ '/' ~ img) }}"
-     alt="法規圖片"
-     style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
-     onclick="window.open(this.src,'_blank')">
+         alt="法規圖片"
+         style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
+         onclick="window.open(this.src,'_blank')">
 
     <a href="{{ url_for('delete_image', sheet_name=sheet_name, item_index=item_index, filename=img) }}"
        style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;text-decoration:none;"
