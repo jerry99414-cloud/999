@@ -446,10 +446,15 @@ def regulation(sheet_name, item_index):
     # 取得資料
     row = df.iloc[item_index]
 
-    # ✅ 關鍵修正：去掉空白 + 保證字串
-    defect = str(row[COL_DEFECT]).strip()
-    reg_text = row[COL_REG]
-    content_text = row[COL_CONTENT]
+   # ⭐⭐⭐ 文件清冊分流（只加這段）
+    if real_sheet == "文件清冊":
+     defect = str(row["問題"]).strip()
+     reg_text = row["範例"] if "範例" in df.columns else ""
+     content_text = ""
+    else:
+     defect = str(row[COL_DEFECT]).strip()
+     reg_text = row[COL_REG]
+     content_text = row[COL_CONTENT]
 
     print("DEBUG defect =", repr(defect))
 
