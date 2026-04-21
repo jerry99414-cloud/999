@@ -484,16 +484,19 @@ def regulation(sheet_name, item_index):
     ]
 
     folder = None
+
     for c in candidates:
-        test_path = os.path.join(base_path, c)
-        if os.path.exists(test_path):
-            folder = test_path
-            break
-    folder_name = os.path.basename(folder)
+     test_path = os.path.join(base_path, c)
+     if os.path.exists(test_path):
+         folder = test_path
+         break
 
+# ⭐⭐⭐ 關鍵：一定要先補 folder
     if folder is None:
-        folder = os.path.join(base_path, safe_defect)
+     folder = os.path.join(base_path, safe_defect)
 
+# ⭐⭐⭐ 再取名稱（不能提前）
+    folder_name = os.path.basename(folder)
     # ===== 抓圖片 + PDF =====
     if os.path.exists(folder):
         files = os.listdir(folder)
