@@ -309,6 +309,7 @@ def load_sheet_data(sheet_name):
         # 找欄位
         col_defect = find_col(raw.columns, COL_DEFECT)
         col_reg = find_col(raw.columns, COL_REG)
+        col_content = find_col(raw.columns, COL_CONTENT)
 
         # 如果抓不到 → 換 header=1
         if col_defect is None:
@@ -334,22 +335,43 @@ def load_sheet_data(sheet_name):
         # ===== 解析資料 =====
         records = []
         row_ranges = []
+        current = None
+        current_start = None
 
-        for _, row in raw.iterrows():
-         val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
-         reg_val = str(row[col_reg]) if col_reg and pd.notna(row[col_reg]) else ""
+        for enum_idx, (_, row) in enumerate(raw.iterrows()):
+            draw_row = enum_idx + 1
 
-    # ⭐ 只抓有缺失項目的列
-         if val:
-          records.append({
-            COL_DEFECT: val,
-            COL_REG: reg_val,
-            COL_CONTENT: reg_val   # ⭐ 直接用原始內容
-        })
+            val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
+
+# 法源依據（短）
+            reg_val = str(row[col_reg]) if col_reg and pd.notna(row[col_reg]) else ""
+
+# ⭐ 法規內容（重點）
+            content_val = str(row[col_content]) if col_content and pd.notna(row[col_content]) else ""
+            if val:
+                if current is not None:
+                    row_ranges.append((current_start, draw_row - 1))
+                    records.append(current)
+
+                current = {
+    COL_DEFECT: val,
+    COL_REG: reg_val,
+    COL_CONTENT: content_val   # ⭐ 用正確欄位
+}
+                current_start = draw_row
+            else:
+                if current is not None and reg_val:
+                    if current[COL_CONTENT]:
+                        current[COL_CONTENT] += "\n"
+                    current[COL_CONTENT] += reg_val
+
+        if current is not None:
+            row_ranges.append((current_start, 99999))
+            records.append(current)
 
         df = pd.DataFrame(records) if records else pd.DataFrame(
-              columns=[COL_DEFECT, COL_REG, COL_CONTENT]
-)
+            columns=[COL_DEFECT, COL_REG, COL_CONTENT]
+        )
 
         return df, actual_cols, row_ranges
 
