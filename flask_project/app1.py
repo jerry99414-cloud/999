@@ -334,41 +334,22 @@ def load_sheet_data(sheet_name):
         # ===== 解析資料 =====
         records = []
         row_ranges = []
-        current = None
-        current_start = None
 
-        for enum_idx, (_, row) in enumerate(raw.iterrows()):
-            draw_row = enum_idx + 1
+        for _, row in raw.iterrows():
+         val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
+         reg_val = str(row[col_reg]) if col_reg and pd.notna(row[col_reg]) else ""
 
-            val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
-
-# ⭐ 不要 strip，保留原本空白（這就是關鍵）
-            reg_val = str(row[col_reg]) if col_reg and pd.notna(row[col_reg]) else ""
-
-            if val:
-                if current is not None:
-                    row_ranges.append((current_start, draw_row - 1))
-                    records.append(current)
-
-                current = {
-                    COL_DEFECT: val,
-                    COL_REG: reg_val,
-                    COL_CONTENT: ""
-                }
-                current_start = draw_row
-            else:
-                if current is not None and reg_val:
-                    if current[COL_CONTENT]:
-                        current[COL_CONTENT] += "\n"
-                    current[COL_CONTENT] += reg_val
-
-        if current is not None:
-            row_ranges.append((current_start, 99999))
-            records.append(current)
+    # ⭐ 只抓有缺失項目的列
+         if val:
+          records.append({
+            COL_DEFECT: val,
+            COL_REG: reg_val,
+            COL_CONTENT: reg_val   # ⭐ 直接用原始內容
+        })
 
         df = pd.DataFrame(records) if records else pd.DataFrame(
-            columns=[COL_DEFECT, COL_REG, COL_CONTENT]
-        )
+              columns=[COL_DEFECT, COL_REG, COL_CONTENT]
+)
 
         return df, actual_cols, row_ranges
 
