@@ -359,7 +359,12 @@ def load_sheet_data(sheet_name):
     COL_CONTENT: content_val   # ⭐ 用正確欄位
 }
                 current_start = draw_row
-           
+            else:
+    # ⭐ 改用 content_val（不是 reg_val）
+              if current is not None and content_val != "":
+                  if current[COL_CONTENT]:
+                      current[COL_CONTENT] += "\n"
+                  current[COL_CONTENT] += content_val
 
         if current is not None:
             row_ranges.append((current_start, 99999))
