@@ -341,28 +341,24 @@ def load_sheet_data(sheet_name):
             draw_row = enum_idx + 1
 
             val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
-
-# 法源依據
-            reg_val = str(row[col_reg]).strip() if col_reg and pd.notna(row[col_reg]) else ""
-
-# ⭐ 法規內容（重點：直接從 Excel 抓）
-            content_val = ""
-            if COL_CONTENT in raw.columns and pd.notna(row[COL_CONTENT]):
-              content_val = str(row[COL_CONTENT])
+            reg_val = str(row[col_reg]) if col_reg and pd.notna(row[col_reg]) else ""
 
             if val:
-               if current is not None:
-                 row_ranges.append((current_start, draw_row - 1))
-                 records.append(current)
+                if current is not None:
+                    row_ranges.append((current_start, draw_row - 1))
+                    records.append(current)
 
-               current = {
-               COL_DEFECT: val,
-               COL_REG: reg_val,
-               COL_CONTENT: content_val   # ⭐ 用這個
-    }
-            current_start = draw_row
-
-# ⭐ 不要再拼接任何內容（這行就是關鍵）
+                current = {
+                    COL_DEFECT: val,
+                    COL_REG: reg_val,
+                    COL_CONTENT: ""
+                }
+                current_start = draw_row
+            else:
+                if current is not None and reg_val:
+                    if current[COL_CONTENT]:
+                        current[COL_CONTENT] += "\n"
+                    current[COL_CONTENT] += reg_val
 
         if current is not None:
             row_ranges.append((current_start, 99999))
