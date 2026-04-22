@@ -341,7 +341,9 @@ def load_sheet_data(sheet_name):
             draw_row = enum_idx + 1
 
             val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
-            reg_val = str(row[col_reg]).strip() if col_reg and pd.notna(row[col_reg]) else ""
+
+# ⭐ 不要 strip，保留原本空白（這就是關鍵）
+            reg_val = str(row[col_reg]) if col_reg and pd.notna(row[col_reg]) else ""
 
             if val:
                 if current is not None:
