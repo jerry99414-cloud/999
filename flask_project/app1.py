@@ -309,7 +309,6 @@ def load_sheet_data(sheet_name):
         # 找欄位
         col_defect = find_col(raw.columns, COL_DEFECT)
         col_reg = find_col(raw.columns, COL_REG)
-        col_content = find_col(raw.columns, COL_CONTENT)
 
         # 如果抓不到 → 換 header=1
         if col_defect is None:
@@ -343,28 +342,27 @@ def load_sheet_data(sheet_name):
 
             val = str(row[col_defect]).strip() if pd.notna(row[col_defect]) else ""
 
-# 法源依據（短）
-            reg_val = str(row[col_reg]) if col_reg and pd.notna(row[col_reg]) else ""
+# 法源依據
+            reg_val = str(row[col_reg]).strip() if col_reg and pd.notna(row[col_reg]) else ""
 
-# ⭐ 法規內容（重點）
-            content_val = str(row[col_content]) if col_content and pd.notna(row[col_content]) else ""
+# ⭐ 法規內容（重點：直接從 Excel 抓）
+            content_val = ""
+            if COL_CONTENT in raw.columns and pd.notna(row[COL_CONTENT]):
+              content_val = str(row[COL_CONTENT])
+
             if val:
-                if current is not None:
-                    row_ranges.append((current_start, draw_row - 1))
-                    records.append(current)
+               if current is not None:
+                 row_ranges.append((current_start, draw_row - 1))
+                 records.append(current)
 
-                current = {
-    COL_DEFECT: val,
-    COL_REG: reg_val,
-    COL_CONTENT: content_val   # ⭐ 用正確欄位
-}
-                current_start = draw_row
-            else:
-    # ⭐ 改用 content_val（不是 reg_val）
-              if current is not None and content_val != "":
-                  if current[COL_CONTENT]:
-                      current[COL_CONTENT] += "\n"
-                  current[COL_CONTENT] += content_val
+               current = {
+               COL_DEFECT: val,
+               COL_REG: reg_val,
+               COL_CONTENT: content_val   # ⭐ 用這個
+    }
+            current_start = draw_row
+
+# ⭐ 不要再拼接任何內容（這行就是關鍵）
 
         if current is not None:
             row_ranges.append((current_start, 99999))
